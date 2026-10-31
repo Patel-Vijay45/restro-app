@@ -1,0 +1,235 @@
+// DFC Family Restaurant system.
+// Money is stored as integer paise (₹1 = 100) to avoid rounding errors.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum OutletType {
+  RESTAURANT // table service: waiters, tables, kitchen screen
+  COUNTER // counter service: pay first, token number (mall stall)
+}
+
+enum Role {
+  OWNER // everything, every outlet
+  MANAGER // everything in their outlet
+  CASHIER // billing and payments
+  WAITER // take table orders
+  KITCHEN // kitchen screen only
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEAWAY
+  COUNTER
+}
+
+enum OrderStatus {
+  OPEN // items being ordered / eaten
+  BILLED // bill generated, waiting for payment
+  PAID
+  CANCELLED
+}
+
+enum KotStatus {
+  NEW
+  PREPARING
+  READY
+  SERVED
+}
+
+enum PaymentMode {
+  CASH
+  UPI
+  CARD
+}
+
+model Outlet {
+  id          String     @id @default(cuid())
+  name        String
+  type        OutletType
+  address     String     @default("")
+  phone       String     @default("")
+  upiId       String     @default("") // shown as a QR code on bills
+  billFooter  String     @default("Thank you! Visit again.")
+  paperWidth  Int        @default(80) // receipt printer paper, 58 or 80 mm
+  gstEnabled  Boolean    @default(false)
+  gstin       String     @default("")
+  gstRateBp   Int        @default(500) // basis points: 500 = 5%
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+
+  staff      Staff[]
+  tables     DiningTable[]
+  categories Category[]
+  menuItems  MenuItem[]
+  orders     Order[]
+  kots       Kot[]
+  counters   Counter[]
+}
+
+model Staff {
+  id        String   @id @default(cuid())
+  name      String
+  role      Role
+  pinHash   String
+  // null means the person can work at every outlet (owner)
+  outletId  String?
+  outlet    Outlet?  @relation(fields: [outletId], references: [id])
+  active    Boolean  @default(true)
+  // wrong-PIN protection: locked for a few minutes after repeated mistakes
+  failedPins  Int       @default(0)
+  lockedUntil DateTime?
+  createdAt DateTime @default(now())
+
+  ordersCreated Order[]   @relation("OrderCreatedBy")
+  kotsCreated   Kot[]     @relation("KotCreatedBy")
+  payments      Payment[]
+}
+
+model DiningTable {
+  id        String  @id @default(cuid())
+  outletId  String
+  outlet    Outlet  @relation(fields: [outletId], references: [id])
+  name      String
+  seats     Int     @default(4)
+  sortOrder Int     @default(0)
+  // secret used in the table's QR code link (customer view, phase 3)
+  qrToken   String  @unique @default(cuid())
+  active    Boolean @default(true)
+
+  orders Order[]
+
+  @@unique([outletId, name])
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  outletId  String
+  outlet    Outlet     @relation(fields: [outletId], references: [id])
+  name      String
+  sortOrder Int        @default(0)
+  active    Boolean    @default(true)
+  items     MenuItem[]
+}
+
+model MenuItem {
+  id          String   @id @default(cuid())
+  outletId    String
+  outlet      Outlet   @relation(fields: [outletId], references: [id])
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+  name        String
+  description String   @default("")
+  price       Int // paise
+  isVeg       Boolean
+  isAvailable Boolean  @default(true) // "sold out today" switch
+  sortOrder   Int      @default(0)
+  active      Boolean  @default(true) // false = removed from menu
+  createdAt   DateTime @default(now())
+
+  orderItems OrderItem[]
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  outletId      String
+  outlet        Outlet      @relation(fields: [outletId], references: [id])
+  type          OrderType
+  status        OrderStatus @default(OPEN)
+  tableId       String?
+  table         DiningTable? @relation(fields: [tableId], references: [id])
+  tokenNo       Int? // counter orders: number called out when food is ready
+  billNo        Int? // set when the bill is generated
+  guests        Int?
+  customerName  String      @default("")
+  customerPhone String      @default("")
+  createdById   String
+  createdBy     Staff       @relation("OrderCreatedBy", fields: [createdById], references: [id])
+
+  // filled when the bill is generated (paise)
+  subtotal     Int    @default(0)
+  discount     Int    @default(0)
+  discountNote String @default("")
+  tax          Int    @default(0)
+  roundOff     Int    @default(0)
+  total        Int    @default(0)
+
+  cancelReason String    @default("")
+  createdAt    DateTime  @default(now())
+  billedAt     DateTime?
+  paidAt       DateTime?
+
+  items    OrderItem[]
+  kots     Kot[]
+  payments Payment[]
+
+  @@index([outletId, status])
+  @@index([outletId, createdAt])
+}
+
+// Kitchen order ticket: one batch of items sent to the kitchen together.
+model Kot {
+  id          String    @id @default(cuid())
+  outletId    String
+  outlet      Outlet    @relation(fields: [outletId], references: [id])
+  orderId     String
+  order       Order     @relation(fields: [orderId], references: [id])
+  number      Int // resets every day
+  status      KotStatus @default(NEW)
+  createdById String
+  createdBy   Staff     @relation("KotCreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  items OrderItem[]
+
+  @@index([outletId, status])
+}
+
+model OrderItem {
+  id           String   @id @default(cuid())
+  orderId      String
+  order        Order    @relation(fields: [orderId], references: [id])
+  kotId        String
+  kot          Kot      @relation(fields: [kotId], references: [id])
+  menuItemId   String
+  menuItem     MenuItem @relation(fields: [menuItemId], references: [id])
+  // copied at order time so later menu edits don't change old bills
+  name         String
+  price        Int
+  isVeg        Boolean
+  qty          Int
+  note         String   @default("")
+  cancelled    Boolean  @default(false)
+  cancelReason String   @default("")
+  createdAt    DateTime @default(now())
+}
+
+model Payment {
+  id           String      @id @default(cuid())
+  orderId      String
+  order        Order       @relation(fields: [orderId], references: [id])
+  mode         PaymentMode
+  amount       Int
+  receivedById String
+  receivedBy   Staff       @relation(fields: [receivedById], references: [id])
+  createdAt    DateTime    @default(now())
+}
+
+// Running numbers per outlet: bill numbers (never reset), KOT and token numbers (reset daily).
+model Counter {
+  outletId String
+  outlet   Outlet @relation(fields: [outletId], references: [id])
+  key      String // "bill" | "kot" | "token"
+  day      String // "YYYY-MM-DD" (India time) or "all"
+  value    Int    @default(0)
+
+  @@id([outletId, key, day])
+}
