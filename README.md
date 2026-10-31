@@ -92,7 +92,8 @@ Why a server and not a "free" cloud plan: every phone checks for new orders ever
 counts each check, and Vercel's free plan does not allow business use. On your own server those checks cost nothing.
 
 ### Demo first (₹0)
-For showing the owner, any of these is fine:
+**Free online test link:** follow [deploy/FREE-TEST-SETUP.md](deploy/FREE-TEST-SETUP.md) (Vercel + Neon, about 15 minutes,
+works on any phone). For testing only. Other ways:
 - run it on your laptop (`npm run dev`) and open it on phones on the same Wi-Fi at `http://<laptop-ip>:3000`
   (the table QR codes will point there too), or
 - put it on the server above using the free `sslip.io` address.
