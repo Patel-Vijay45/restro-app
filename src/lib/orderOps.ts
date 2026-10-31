@@ -2,6 +2,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import type { Me } from "./auth";
 import { nextNumber } from "./counters";
+import { deductForItems } from "./stock";
 
 type Tx = Prisma.TransactionClient;
 
@@ -41,7 +42,11 @@ export async function createKot(tx: Tx, me: Me, orderId: string, cart: CartLine[
   const kot = await tx.kot.create({
     data: { outletId: me.outletId, orderId, number, createdById: me.staffId },
   });
-  await tx.orderItem.createMany({ data: lines.map((l) => ({ ...l, orderId, kotId: kot.id })) });
+  const items = await tx.orderItem.createManyAndReturn({
+    data: lines.map((l) => ({ ...l, orderId, kotId: kot.id })),
+    select: { id: true, menuItemId: true, qty: true },
+  });
+  await deductForItems(tx, me.outletId, me.staffId, items);
   return kot;
 }
 

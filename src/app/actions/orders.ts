@@ -7,6 +7,7 @@ import { CAN_MANAGE, CAN_ORDER, CAN_SEE_KITCHEN, CAN_TAKE_PAYMENT, requireStaff,
 import { nextNumber } from "@/lib/counters";
 import { createKot, UserError, tableOrderId, type CartLine } from "@/lib/orderOps";
 import { calculateBill, type Discount } from "@/lib/bill";
+import { returnForItems } from "@/lib/stock";
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 type Tx = Prisma.TransactionClient;
@@ -116,7 +117,7 @@ export async function cancelItem(itemId: string, reason: string): Promise<Result
     if (!reason.trim()) throw new UserError("Give a reason");
     const item = await db.orderItem.findFirst({
       where: { id: itemId, order: { outletId: me.outletId } },
-      include: { order: true },
+      include: { order: true, kot: true },
     });
     if (!item) throw new UserError("Item not found");
     if (item.order.status === "PAID" || item.order.status === "CANCELLED") throw new UserError("This order is closed");
@@ -125,6 +126,8 @@ export async function cancelItem(itemId: string, reason: string): Promise<Result
         where: { id: item.id },
         data: { cancelled: true, cancelReason: `${reason.trim().slice(0, 120)} (by ${me.name})` },
       });
+      // Not cooked yet: the ingredients are still in stock. Already cooking: they count as used.
+      if (item.kot.status === "NEW") await returnForItems(tx, me.staffId, [item.id]);
       // A billed order's totals are now wrong, so it must be billed again.
       if (item.order.status === "BILLED") await tx.order.update({ where: { id: item.orderId }, data: { status: "OPEN" } });
     });
@@ -143,9 +146,16 @@ export async function cancelOrder(orderId: string, reason: string): Promise<Resu
     if (!order) throw new UserError("Order not found");
     if (order.status === "PAID" || order.status === "CANCELLED") throw new UserError("This order is closed");
     if (order.payments.length > 0) throw new UserError("A payment was already taken for this order");
-    await db.order.update({
-      where: { id: order.id },
-      data: { status: "CANCELLED", cancelReason: `${reason.trim().slice(0, 120)} (by ${me.name})` },
+    await db.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id: order.id },
+        data: { status: "CANCELLED", cancelReason: `${reason.trim().slice(0, 120)} (by ${me.name})` },
+      });
+      const notCooked = await tx.orderItem.findMany({
+        where: { orderId: order.id, cancelled: false, kot: { status: "NEW" } },
+        select: { id: true },
+      });
+      await returnForItems(tx, me.staffId, notCooked.map((i) => i.id));
     });
     return {};
   });

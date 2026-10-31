@@ -56,6 +56,20 @@ enum RequestStatus {
   REJECTED
 }
 
+enum IngredientUnit {
+  KG // stock in kg, recipes in grams
+  LITRE // stock in litres, recipes in ml
+  PIECE // stock and recipes in pieces
+}
+
+enum StockMoveType {
+  PURCHASE
+  SALE // used by an order sent to the kitchen (from the dish recipe)
+  CANCEL_RETURN // item removed before cooking started: stock goes back
+  WASTAGE
+  COUNT_ADJUST // physical count differed from the system
+}
+
 enum PaymentMode {
   CASH
   UPI
@@ -77,14 +91,16 @@ model Outlet {
   sortOrder  Int        @default(0)
   createdAt  DateTime   @default(now())
 
-  staff      Staff[]
-  tables     DiningTable[]
-  categories Category[]
-  menuItems  MenuItem[]
-  orders     Order[]
-  kots       Kot[]
-  counters   Counter[]
-  requests   TableRequest[]
+  staff       Staff[]
+  tables      DiningTable[]
+  categories  Category[]
+  menuItems   MenuItem[]
+  orders      Order[]
+  kots        Kot[]
+  counters    Counter[]
+  requests    TableRequest[]
+  ingredients Ingredient[]
+  stockMoves  StockMove[]
 }
 
 model Staff {
@@ -102,6 +118,7 @@ model Staff {
   createdAt   DateTime  @default(now())
 
   requestsHandled TableRequest[]
+  stockMoves      StockMove[]
   ordersCreated   Order[]        @relation("OrderCreatedBy")
   kotsCreated     Kot[]          @relation("KotCreatedBy")
   payments        Payment[]
@@ -150,6 +167,7 @@ model MenuItem {
   createdAt   DateTime @default(now())
 
   orderItems OrderItem[]
+  recipe     RecipeLine[]
 }
 
 model Order {
@@ -267,4 +285,59 @@ model TableRequest {
 
   @@index([outletId, status])
   @@index([tableId, createdAt])
+}
+
+// ---------- Inventory ----------
+// Quantities are integers in thousandths of the unit ("milli"): 1 kg = 1000, 250 g = 250, 1 piece = 1000.
+
+model Ingredient {
+  id          String         @id @default(cuid())
+  outletId    String
+  outlet      Outlet         @relation(fields: [outletId], references: [id])
+  name        String
+  unit        IngredientUnit
+  stock       Int            @default(0) // milli; can go below zero if recipes use more than was recorded
+  lowStock    Int            @default(0) // milli; alert at or below this
+  costPerUnit Int            @default(0) // paise per kg / litre / piece (average of purchases)
+  active      Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+
+  recipeLines RecipeLine[]
+  moves       StockMove[]
+
+  @@unique([outletId, name])
+}
+
+// How much of an ingredient one portion of a dish uses.
+model RecipeLine {
+  id           String     @id @default(cuid())
+  menuItemId   String
+  menuItem     MenuItem   @relation(fields: [menuItemId], references: [id])
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
+  qty          Int // milli
+
+  @@unique([menuItemId, ingredientId])
+}
+
+// Every change to stock, so the history can always be checked.
+model StockMove {
+  id           String        @id @default(cuid())
+  outletId     String
+  outlet       Outlet        @relation(fields: [outletId], references: [id])
+  ingredientId String
+  ingredient   Ingredient    @relation(fields: [ingredientId], references: [id])
+  type         StockMoveType
+  qty          Int // milli, + adds stock, - removes it
+  value        Int           @default(0) // paise: amount paid for purchases, estimated cost for the rest
+  supplier     String        @default("")
+  note         String        @default("")
+  orderItemId  String?
+  staffId      String?
+  staff        Staff?        @relation(fields: [staffId], references: [id])
+  createdAt    DateTime      @default(now())
+
+  @@index([ingredientId, createdAt])
+  @@index([outletId, type, createdAt])
+  @@index([orderItemId])
 }

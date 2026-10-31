@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export type NavLink = { href: string; label: string; icon: string };
+export type NavLink = { href: string; label: string; icon: string; badge?: number };
 
 export default function BottomNav({ links }: { links: NavLink[] }) {
   const path = usePathname();
@@ -21,8 +21,15 @@ export default function BottomNav({ links }: { links: NavLink[] }) {
                 active ? "text-ink" : "text-muted"
               }`}
             >
-              <span className={`text-xl leading-none ${active ? "" : "opacity-60 grayscale"}`} aria-hidden>
-                {l.icon}
+              <span className="relative">
+                <span className={`text-xl leading-none ${active ? "" : "opacity-60 grayscale"}`} aria-hidden>
+                  {l.icon}
+                </span>
+                {l.badge ? (
+                  <span className="absolute -right-3 -top-1 min-w-4 rounded-full bg-nonveg px-1 text-center text-[10px] font-bold leading-4 text-white">
+                    {l.badge}
+                  </span>
+                ) : null}
               </span>
               {l.label}
               <span className={`mt-0.5 h-0.5 w-6 rounded-full ${active ? "bg-gold" : "bg-transparent"}`} />

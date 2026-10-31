@@ -3,7 +3,7 @@
 Ordering, kitchen, billing and (soon) stock for **DFC Family Restaurant** and the **DFC Mall Stall**, Gajendragad.
 Everything works from a phone. A PC or tablet is optional.
 
-## What works now (phases 1–3)
+## What works now (phases 1–4)
 
 | Who | Screen | What they do |
 |---|---|---|
@@ -15,7 +15,9 @@ Everything works from a phone. A PC or tablet is optional.
 | Customer | **Table QR** (scan, no app, no login) | Menu with veg filter and sold-out dishes, picks dishes and sends them **to the waiter for confirmation**, sees live status (received → cooking → coming → served), *Call waiter*, *Ask for bill*, *Pay by UPI* button. |
 | Waiter | **Orders → Customer requests** | Phone beeps and vibrates. Order requests: *Send to kitchen* or *Reject*. Calls and bill requests: *Done* / *Open bill*. The table tile glows with 🛒 🔔 🧾. |
 | Owner / manager | **Manage** | Menu (add/edit dishes, *sold out today* switch), tables, staff and PINs, outlet details (UPI ID, bill footer, printer paper size, GST switch). |
-| Owner / manager | **Sales** | Day's sales, bills, average bill, cash vs UPI vs card, top dishes, **removed items and cancelled orders with reasons**, both outlets combined. |
+| Owner / manager | **Stock** | Ingredients per outlet with live stock (kg / L / pcs) and *running low* list (red badge on the Stock tab). **Purchase** (quantity, amount paid, supplier: updates the average cost), **Wastage** (with reason), **Count** (enter what is really there; the difference is saved). History of every change per ingredient. |
+| Owner / manager | **Manage → Menu → dish → Recipe** | How much of each ingredient one portion uses (g / ml / pcs). Shows cost to make, selling price and **food cost %**. |
+| Owner / manager | **Sales** | Day's sales, bills, average bill, cash vs UPI vs card, food cost of paid bills, purchases, wastage, stock missing in counts, top dishes, **removed items and cancelled orders with reasons**, both outlets combined. |
 
 Safety built in: nothing a customer orders reaches the kitchen until a waiter confirms it, so an old photo of a QR can't
 place fake orders; each table allows at most 10 requests per 10 minutes; *Manage → Tables → New QR* makes a table's old
@@ -31,7 +33,8 @@ Needs Node 20+ and Postgres.
 npm install
 cp .env.example .env          # then edit DATABASE_URL / DIRECT_URL / SESSION_SECRET
 npx prisma migrate deploy
-npm run db:seed               # sample menu, 12 tables, test logins
+npm run db:seed               # sample menu with recipes, stock, 12 tables, test logins
+                              # (on an older demo database it adds the sample stock and recipes)
 npm run dev                   # http://localhost:3000
 ```
 
@@ -49,6 +52,16 @@ Sample logins (change these before going live, in Manage → Staff):
 
 To try the table QR: log in as Owner → *Manage → Tables* → *Customer view* next to any table
 (or *Print QR codes* and scan one with a phone on the same Wi-Fi).
+
+## How stock works
+
+- When an order goes to the kitchen, each dish's recipe amounts are taken out of stock automatically
+  (2 × Chicken Biryani with 200 g chicken each = 400 g less chicken). Dishes without a recipe are simply not tracked.
+- An item removed **before** the kitchen starts cooking puts its ingredients back. Removed after cooking started, they stay used.
+- Stock can go below zero if more was used than recorded. That is a sign to do a **Count**.
+- Do a quick **Count** every night (or once a week for slow items). "Missing in stock count" in Sales shows the value
+  that disappeared: wrong recipes, unrecorded wastage or theft.
+- The restaurant and the stall have separate ingredients and stock.
 
 ## Cost plan (lowest cost)
 
@@ -90,6 +103,7 @@ prisma/schema.prisma       data model (outlets, staff, tables, menu, orders, KOT
 src/app/(staff)/orders     tables, new order, order detail, bill & payment, stall counter
 src/app/(staff)/kitchen    kitchen screen
 src/app/(staff)/manage     menu, tables, staff, outlet settings
+src/app/(staff)/stock      ingredients, purchase, wastage, stock count
 src/app/(staff)/reports    sales report
 src/app/t/[token]          customer page behind each table QR (public)
 src/app/print              thermal receipt, table QR sheet
@@ -104,6 +118,6 @@ src/lib                    bill maths, money, login sessions, numbering
 - [x] Basic sales report (both outlets)
 - [x] **Phase 3: table QR:** customer scans → menu, order request (waiter confirms), live status, call waiter, ask for bill, pay by UPI
 - [x] Low-cost hosting: Docker setup for one small server (app + database + HTTPS + backups)
-- [ ] **Phase 4: inventory:** raw materials, recipes per dish, auto stock deduction, purchases, wastage, low-stock alerts (per outlet)
+- [x] **Phase 4: inventory:** ingredients, recipes per dish with food cost, auto stock deduction, purchases, wastage, stock count, low-stock alerts (per outlet)
 - [ ] **Phase 5: public website** + logo refresh
 - [ ] Later: offline mode for weak internet, table move/merge, direct Bluetooth printing

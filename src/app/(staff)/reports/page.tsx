@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { CAN_MANAGE, requireStaff } from "@/lib/auth";
 import { rupees } from "@/lib/money";
 import { indiaDay, timeText } from "@/lib/time";
 import { orderTitle } from "@/lib/orderTitle";
+import { lowStockCount } from "@/lib/ingredients";
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ day?: string; all?: string }> }) {
   const me = await requireStaff(CAN_MANAGE);
@@ -13,6 +15,28 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const from = new Date(`${day}T00:00:00+05:30`);
   const to = new Date(from.getTime() + 24 * 60 * 60 * 1000);
   const outletFilter = allOutlets ? {} : { outletId: me.outletId };
+
+  const [stockByType, countLosses] = await Promise.all([
+    db.stockMove.groupBy({ by: ["type"], where: { ...outletFilter, createdAt: { gte: from, lt: to } }, _sum: { value: true } }),
+    db.stockMove.aggregate({
+      where: { ...outletFilter, type: "COUNT_ADJUST", qty: { lt: 0 }, note: "Stock count", createdAt: { gte: from, lt: to } },
+      _sum: { value: true },
+    }),
+  ]);
+  const stockValue = (t: string) => stockByType.find((r) => r.type === t)?._sum.value ?? 0;
+  // Ingredient cost of the dishes on bills paid this day (from the recipe amounts taken out of stock).
+  const foodCostRows = await db.$queryRaw<{ v: bigint | null }[]>`
+    SELECT SUM(CASE WHEN m.type = 'SALE' THEN m.value ELSE -m.value END) AS v
+    FROM "StockMove" m
+    JOIN "OrderItem" oi ON oi.id = m."orderItemId"
+    JOIN "Order" o ON o.id = oi."orderId"
+    WHERE m.type IN ('SALE', 'CANCEL_RETURN') AND NOT oi.cancelled AND o.status = 'PAID'
+      AND o."paidAt" >= ${from} AND o."paidAt" < ${to}
+      ${allOutlets ? Prisma.empty : Prisma.sql`AND o."outletId" = ${me.outletId}`}`;
+  const foodCost = Number(foodCostRows[0]?.v ?? 0);
+  const lowCount = allOutlets
+    ? (await Promise.all((await db.outlet.findMany({ select: { id: true } })).map((o) => lowStockCount(o.id)))).reduce((a, b) => a + b, 0)
+    : await lowStockCount(me.outletId);
 
   const [paidOrders, payments, soldItems, removedItems, cancelledOrders, running, outlets] = await Promise.all([
     db.order.findMany({ where: { ...outletFilter, status: "PAID", paidAt: { gte: from, lt: to } }, select: { total: true, discount: true, outletId: true } }),
@@ -94,6 +118,24 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           <Row label={`${running.length} open order${running.length > 1 ? "s" : ""} (not paid yet)`} value={rupees(runningValue)} />
         </Section>
       )}
+
+      <Section title="Kitchen and stock">
+        {(() => {
+          const pct = sales > 0 ? Math.round((foodCost / sales) * 100) : 0;
+          return (
+            <>
+              <Row label={`Food cost of paid bills${sales > 0 ? ` (${pct}% of sales)` : ""}`} value={rupees(foodCost)} />
+              <Row label="Bought (purchases)" value={rupees(stockValue("PURCHASE"))} />
+              <Row label="Wasted" value={rupees(stockValue("WASTAGE"))} />
+              <Row label="Missing in stock count" value={rupees(countLosses._sum.value ?? 0)} />
+              <Link href="/stock" className="flex justify-between p-3 text-sm">
+                <span>Ingredients running low</span>
+                <span className={`font-semibold ${lowCount > 0 ? "text-nonveg" : ""}`}>{lowCount} →</span>
+              </Link>
+            </>
+          );
+        })()}
+      </Section>
 
       <Section title="Top dishes">
         {soldItems.length === 0 ? (

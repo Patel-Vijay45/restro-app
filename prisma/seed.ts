@@ -1,5 +1,5 @@
 // Sample data so the app can be tried right away. Replace the menu and PINs with real ones before going live.
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, type IngredientUnit } from "@prisma/client";
 import { hashPin } from "../src/lib/pin";
 
 const db = new PrismaClient();
@@ -71,9 +71,121 @@ async function addMenu(outletId: string, menu: Record<string, SeedItem[]>) {
   }
 }
 
+
+// ---------- Sample inventory ----------
+// [name, unit, stock now (kg / L / pcs), warn at, price per kg / L / pc in ₹]
+type SeedIngredient = [string, IngredientUnit, number, number, number];
+// dish -> [ingredient, amount per portion in g / ml / pcs]
+type SeedRecipes = Record<string, [string, number][]>;
+
+const restaurantIngredients: SeedIngredient[] = [
+  ["Chicken", "KG", 12, 3, 240],
+  ["Mutton", "KG", 4, 1, 750],
+  ["Fish", "KG", 3, 1, 400],
+  ["Paneer", "KG", 3, 1, 380],
+  ["Eggs", "PIECE", 60, 12, 6],
+  ["Basmati Rice", "KG", 20, 5, 110],
+  ["Toor Dal", "KG", 5, 1, 140],
+  ["Wheat Flour", "KG", 10, 3, 45],
+  ["Maida", "KG", 5, 1, 50],
+  ["Cauliflower", "PIECE", 8, 2, 30],
+  ["Onion", "KG", 15, 4, 35],
+  ["Tomato", "KG", 8, 2, 30],
+  ["Cooking Oil", "LITRE", 15, 4, 150],
+  ["Ghee", "LITRE", 0.4, 0.5, 600],
+  ["Butter", "KG", 1.5, 0.5, 520],
+  ["Curd", "LITRE", 5, 1, 60],
+  ["Milk", "LITRE", 5, 1, 56],
+  ["Lemon", "PIECE", 30, 10, 4],
+  ["Sugar", "KG", 5, 1, 45],
+  ["Soft Drink Bottle", "PIECE", 24, 6, 32],
+];
+
+const restaurantRecipes: SeedRecipes = {
+  "Gobi Manchurian": [["Cauliflower", 0.5], ["Maida", 50], ["Cooking Oil", 60], ["Onion", 30]],
+  "Paneer 65": [["Paneer", 150], ["Maida", 30], ["Cooking Oil", 50], ["Curd", 30]],
+  "Chicken 65": [["Chicken", 250], ["Cooking Oil", 60], ["Curd", 30]],
+  "Chicken Kabab": [["Chicken", 250], ["Cooking Oil", 60], ["Eggs", 1]],
+  "Fish Fry": [["Fish", 250], ["Cooking Oil", 50]],
+  "Veg Biryani": [["Basmati Rice", 150], ["Onion", 50], ["Tomato", 40], ["Cooking Oil", 30], ["Ghee", 10]],
+  "Egg Biryani": [["Basmati Rice", 150], ["Eggs", 2], ["Onion", 50], ["Cooking Oil", 30]],
+  "Chicken Biryani": [["Basmati Rice", 150], ["Chicken", 200], ["Onion", 60], ["Curd", 40], ["Cooking Oil", 30], ["Ghee", 10]],
+  "Mutton Biryani": [["Basmati Rice", 150], ["Mutton", 200], ["Onion", 60], ["Curd", 40], ["Cooking Oil", 30], ["Ghee", 15]],
+  "Dal Fry": [["Toor Dal", 80], ["Onion", 30], ["Tomato", 30], ["Cooking Oil", 15]],
+  "Paneer Butter Masala": [["Paneer", 150], ["Butter", 25], ["Tomato", 100], ["Onion", 50], ["Milk", 30]],
+  "Chicken Curry": [["Chicken", 250], ["Onion", 80], ["Tomato", 60], ["Cooking Oil", 40]],
+  "Butter Chicken": [["Chicken", 250], ["Butter", 30], ["Tomato", 100], ["Milk", 40]],
+  "Mutton Masala": [["Mutton", 250], ["Onion", 80], ["Tomato", 60], ["Cooking Oil", 40]],
+  "Jeera Rice": [["Basmati Rice", 150], ["Ghee", 10]],
+  "Ghee Rice": [["Basmati Rice", 150], ["Ghee", 20]],
+  Chapati: [["Wheat Flour", 40], ["Cooking Oil", 5]],
+  "Butter Naan": [["Maida", 80], ["Butter", 10], ["Curd", 10]],
+  "Sweet Lassi": [["Curd", 250], ["Sugar", 30]],
+  "Fresh Lime Soda": [["Lemon", 1], ["Sugar", 20]],
+  "Soft Drink": [["Soft Drink Bottle", 1]],
+};
+
+const stallIngredients: SeedIngredient[] = [
+  ["Chicken", "KG", 4, 1, 240],
+  ["Rumali Roti", "PIECE", 40, 10, 8],
+  ["Puff Pastry", "PIECE", 30, 10, 12],
+  ["Frozen Fries", "KG", 5, 1, 180],
+  ["Mixed Veg", "KG", 3, 1, 60],
+  ["Cooking Oil", "LITRE", 5, 1, 150],
+  ["Mayonnaise", "KG", 0.4, 0.5, 220],
+  ["Milk", "LITRE", 5, 1, 56],
+  ["Coffee Powder", "KG", 0.5, 0.1, 900],
+  ["Sugar", "KG", 3, 1, 45],
+  ["Lemon", "PIECE", 30, 10, 4],
+];
+
+const stallRecipes: SeedRecipes = {
+  "Veg Puff": [["Puff Pastry", 1], ["Mixed Veg", 40]],
+  "French Fries": [["Frozen Fries", 150], ["Cooking Oil", 30]],
+  "Veg Roll": [["Rumali Roti", 1], ["Mixed Veg", 80], ["Mayonnaise", 20]],
+  "Chicken Roll": [["Rumali Roti", 1], ["Chicken", 100], ["Mayonnaise", 20], ["Cooking Oil", 10]],
+  "Chicken Shawarma": [["Rumali Roti", 1], ["Chicken", 120], ["Mayonnaise", 30]],
+  "Cold Coffee": [["Milk", 250], ["Coffee Powder", 10], ["Sugar", 25]],
+  "Lime Juice": [["Lemon", 1], ["Sugar", 25]],
+};
+
+async function addInventory(outletId: string, list: SeedIngredient[], recipes: SeedRecipes) {
+  if ((await db.ingredient.count({ where: { outletId } })) > 0) return false;
+  const ids = new Map<string, { id: string; unit: IngredientUnit }>();
+  for (const [name, unit, stock, low, price] of list) {
+    const ing = await db.ingredient.create({
+      data: { outletId, name, unit, stock: Math.round(stock * 1000), lowStock: Math.round(low * 1000), costPerUnit: price * 100 },
+    });
+    ids.set(name, { id: ing.id, unit });
+    await db.stockMove.create({
+      data: { outletId, ingredientId: ing.id, type: "COUNT_ADJUST", qty: ing.stock, value: Math.round(stock * price * 100), note: "Opening stock" },
+    });
+  }
+  const dishes = await db.menuItem.findMany({ where: { outletId, active: true } });
+  for (const dish of dishes) {
+    const lines = recipes[dish.name];
+    if (!lines) continue;
+    await db.recipeLine.createMany({
+      data: lines.map(([name, amount]) => {
+        const ing = ids.get(name)!;
+        // recipe amounts: grams / ml are already "milli" of kg / L; pieces need * 1000
+        return { menuItemId: dish.id, ingredientId: ing.id, qty: ing.unit === "PIECE" ? Math.round(amount * 1000) : amount };
+      }),
+    });
+  }
+  return true;
+}
+
 async function main() {
   if ((await db.outlet.count()) > 0) {
-    console.log("Database already has data, skipping seed.");
+    // Older databases: add sample stock and recipes if they have none yet.
+    const outlets = await db.outlet.findMany();
+    let added = 0;
+    for (const o of outlets) {
+      const ok = await addInventory(o.id, o.type === "RESTAURANT" ? restaurantIngredients : stallIngredients, o.type === "RESTAURANT" ? restaurantRecipes : stallRecipes);
+      if (ok) added++;
+    }
+    console.log(added ? `Added sample stock and recipes to ${added} outlet(s).` : "Database already has data, skipping seed.");
     return;
   }
 
@@ -101,7 +213,10 @@ async function main() {
     ],
   });
 
-  console.log("Seeded: 2 outlets, 12 tables, sample menus, 5 staff logins.");
+  await addInventory(restaurant.id, restaurantIngredients, restaurantRecipes);
+  await addInventory(stall.id, stallIngredients, stallRecipes);
+
+  console.log("Seeded: 2 outlets, 12 tables, sample menus with recipes, sample stock, 5 staff logins.");
 }
 
 main()

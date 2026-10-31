@@ -13,9 +13,16 @@ export default async function MenuAdminPage({ searchParams }: { searchParams: Pr
   const categories = await db.category.findMany({
     where: { outletId: me.outletId, active: true },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    include: { items: { where: { active: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }] } },
+    include: {
+      items: {
+        where: { active: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        include: { _count: { select: { recipe: true } } },
+      },
+    },
   });
   const soldOut = categories.flatMap((c) => c.items).filter((i) => !i.isAvailable).length;
+  const hasIngredients = (await db.ingredient.count({ where: { outletId: me.outletId, active: true } })) > 0;
 
   return (
     <div>
@@ -48,7 +55,10 @@ export default async function MenuAdminPage({ searchParams }: { searchParams: Pr
                 <VegMark veg={i.isVeg} />
                 <Link href={`/manage/menu/${i.id}`} className="min-w-0 flex-1">
                   <div className={`font-medium leading-tight ${i.isAvailable ? "" : "text-muted"}`}>{i.name}</div>
-                  <div className="text-sm text-muted">{rupees(i.price)} · edit</div>
+                  <div className="text-sm text-muted">
+                    {rupees(i.price)} · edit
+                    {i._count.recipe === 0 && hasIngredients && <span className="text-gold"> · no recipe</span>}
+                  </div>
                 </Link>
                 <AvailableSwitch itemId={i.id} available={i.isAvailable} />
               </div>

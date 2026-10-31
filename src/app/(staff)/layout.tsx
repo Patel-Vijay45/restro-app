@@ -4,6 +4,7 @@ import { logout } from "@/app/actions/auth";
 import BottomNav, { type NavLink } from "@/components/BottomNav";
 import OutletSwitcher from "@/components/OutletSwitcher";
 import RequestBanner from "@/components/RequestBanner";
+import { lowStockCount } from "@/lib/ingredients";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   if (CAN_ORDER.includes(me.role)) links.push({ href: "/orders", label: "Orders", icon: "🍽️" });
   if (CAN_SEE_KITCHEN.includes(me.role)) links.push({ href: "/kitchen", label: "Kitchen", icon: "👨‍🍳" });
   if (CAN_MANAGE.includes(me.role)) {
+    links.push({ href: "/stock", label: "Stock", icon: "📦", badge: await lowStockCount(me.outletId) });
     links.push({ href: "/reports", label: "Sales", icon: "📊" });
     links.push({ href: "/manage", label: "Manage", icon: "⚙️" });
   }

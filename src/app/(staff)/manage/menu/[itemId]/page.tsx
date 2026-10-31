@@ -67,6 +67,11 @@ export default async function EditItemPage({
         <button className="btn-primary w-full">Save</button>
       </form>
       {item && (
+        <Link href={`/manage/menu/${item.id}/recipe`} className="btn-outline mt-4 w-full">
+          🧾 Recipe and cost
+        </Link>
+      )}
+      {item && (
         <form action={removeItem} className="mt-6 text-center">
           <input type="hidden" name="id" value={item.id} />
           <button className="text-sm font-medium text-nonveg underline">Remove from menu</button>
