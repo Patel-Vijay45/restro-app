@@ -3,7 +3,7 @@
 Ordering, kitchen, billing and (soon) stock for **DFC Family Restaurant** and the **DFC Mall Stall**, Gajendragad.
 Everything works from a phone. A PC or tablet is optional.
 
-## What works now (phases 1–4)
+## What works now (phases 1–5)
 
 | Who | Screen | What they do |
 |---|---|---|
@@ -12,6 +12,7 @@ Everything works from a phone. A PC or tablet is optional.
 | Waiter | **Order** | Sees *READY* on the table, marks it served. Can add more items any time. |
 | Cashier / owner | **Bill** | Generates the bill, discount (% or ₹), takes Cash / UPI (QR shown on screen) / Card, split payments, shows change to give back. Print or WhatsApp the bill. |
 | Stall | **Orders** (counter mode) | Tap dishes → *Charge* → take payment → token number. **Tokens** tab: *Food ready: call #12* → *Collected*. |
+| Public | **Website** (`/`) | Logo, Call / WhatsApp / Map buttons, opening hours, **live menu** for the restaurant and the stall (prices and *sold out* come straight from the system), veg filter, search, **takeaway order on WhatsApp** (customer picks dishes, the order arrives on the restaurant's WhatsApp as a message), both outlets with address and hours, Google map, set up for Google search. |
 | Customer | **Table QR** (scan, no app, no login) | Menu with veg filter and sold-out dishes, picks dishes and sends them **to the waiter for confirmation**, sees live status (received → cooking → coming → served), *Call waiter*, *Ask for bill*, *Pay by UPI* button. |
 | Waiter | **Orders → Customer requests** | Phone beeps and vibrates. Order requests: *Send to kitchen* or *Reject*. Calls and bill requests: *Done* / *Open bill*. The table tile glows with 🛒 🔔 🧾. |
 | Owner / manager | **Manage** | Menu (add/edit dishes, *sold out today* switch), tables, staff and PINs, outlet details (UPI ID, bill footer, printer paper size, GST switch). |
@@ -52,6 +53,18 @@ Sample logins (change these before going live, in Manage → Staff):
 
 To try the table QR: log in as Owner → *Manage → Tables* → *Customer view* next to any table
 (or *Print QR codes* and scan one with a phone on the same Wi-Fi).
+
+## Addresses
+
+| Address | Who |
+|---|---|
+| `/` | Public website |
+| `/staff` (or `/login`) | Staff app. On each staff phone open this and use *Add to Home screen*. |
+| `/t/<code>` | Customer page behind each table QR |
+
+Website details (short line, opening hours, Google Maps link, show/hide an outlet) are in **Manage → Outlet**.
+After going live, add the website address to the restaurant's Google Maps listing (Google Business Profile, free),
+so people searching on Google see the menu.
 
 ## How stock works
 
@@ -105,6 +118,7 @@ src/app/(staff)/kitchen    kitchen screen
 src/app/(staff)/manage     menu, tables, staff, outlet settings
 src/app/(staff)/stock      ingredients, purchase, wastage, stock count
 src/app/(staff)/reports    sales report
+src/app/page.tsx           public website (src/components/site: menu with WhatsApp order)
 src/app/t/[token]          customer page behind each table QR (public)
 src/app/print              thermal receipt, table QR sheet
 src/app/actions            all changes (orders, manage, login)
@@ -119,5 +133,6 @@ src/lib                    bill maths, money, login sessions, numbering
 - [x] **Phase 3: table QR:** customer scans → menu, order request (waiter confirms), live status, call waiter, ask for bill, pay by UPI
 - [x] Low-cost hosting: Docker setup for one small server (app + database + HTTPS + backups)
 - [x] **Phase 4: inventory:** ingredients, recipes per dish with food cost, auto stock deduction, purchases, wastage, stock count, low-stock alerts (per outlet)
-- [ ] **Phase 5: public website** + logo refresh
+- [x] **Phase 5: public website:** live menu, WhatsApp takeaway, call / map, Google search basics
+- [ ] Logo refresh (later)
 - [ ] Later: offline mode for weak internet, table move/merge, direct Bluetooth printing

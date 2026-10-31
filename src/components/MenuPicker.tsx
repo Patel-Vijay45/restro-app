@@ -125,7 +125,11 @@ export default function MenuPicker({
                 filter === f ? "border-ink bg-ink text-white" : "border-line bg-white"
               }`}
             >
-              {f !== "all" && <VegMark veg={f === "veg"} size={12} />}
+              {f !== "all" && (
+                <span aria-hidden>
+                  <VegMark veg={f === "veg"} size={12} />
+                </span>
+              )}
               {f === "all" ? "All" : f === "veg" ? "Veg" : "Non-veg"}
             </button>
           ))}

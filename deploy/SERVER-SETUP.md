@@ -37,7 +37,7 @@ First time only, add the sample data (outlets, 12 tables, sample menu, test logi
 sudo docker compose exec app tsx prisma/seed.ts
 ```
 
-Open `https://<your DOMAIN>` and log in as Owner (PIN 1234). Change all PINs in Manage → Staff.
+The website is at `https://<your DOMAIN>`. The staff app is at `https://<your DOMAIN>/staff`: log in as Owner (PIN 1234) and change all PINs in Manage → Staff.
 
 ## Update to the latest version
 

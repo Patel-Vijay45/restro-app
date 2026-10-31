@@ -190,10 +190,28 @@ async function main() {
   }
 
   const restaurant = await db.outlet.create({
-    data: { name: "DFC Family Restaurant", type: "RESTAURANT", address: "Gajendragad", phone: "8160123021", sortOrder: 0 },
+    data: {
+      name: "DFC Family Restaurant",
+      type: "RESTAURANT",
+      address: "Gajendragad, Karnataka",
+      phone: "8160123021",
+      tagline: "Veg & non-veg family dining",
+      hours: "Every day, 11 AM – 11 PM",
+      mapsUrl: "https://maps.google.com/?cid=8078862460556497123",
+      sortOrder: 0,
+    },
   });
   const stall = await db.outlet.create({
-    data: { name: "DFC Mall Stall", type: "COUNTER", address: "Gajendragad", phone: "8160123021", paperWidth: 58, sortOrder: 1 },
+    data: {
+      name: "DFC Mall Stall",
+      type: "COUNTER",
+      address: "Mall, Gajendragad",
+      phone: "8160123021",
+      tagline: "Quick bites, rolls and shakes",
+      hours: "Every day, 11 AM – 10 PM",
+      paperWidth: 58,
+      sortOrder: 1,
+    },
   });
 
   await db.diningTable.createMany({

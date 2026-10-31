@@ -34,6 +34,14 @@ export default async function OutletAdminPage({ searchParams }: { searchParams: 
             <Field label="GST %" name="gstRate" value={String(o.gstRateBp / 100)} />
           </div>
         </fieldset>
+        <fieldset className="space-y-3 rounded-xl border border-line p-3">
+          <label className="flex items-center gap-2 font-medium">
+            <input type="checkbox" name="showOnWebsite" defaultChecked={o.showOnWebsite} /> Show on the website
+          </label>
+          <Field label="Short line under the name" name="tagline" value={o.tagline} placeholder="e.g. Veg & non-veg family dining" />
+          <Field label="Opening hours" name="hours" value={o.hours} placeholder="e.g. Every day, 11 AM – 11 PM" />
+          <Field label="Google Maps link (Share → Copy link)" name="mapsUrl" value={o.mapsUrl} placeholder="https://maps.app.goo.gl/…" />
+        </fieldset>
         <button className="btn-primary w-full">Save</button>
       </form>
     </div>

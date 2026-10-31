@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "Outlet" ADD COLUMN     "hours" TEXT NOT NULL DEFAULT '',
+ADD COLUMN     "mapsUrl" TEXT NOT NULL DEFAULT '',
+ADD COLUMN     "showOnWebsite" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN     "tagline" TEXT NOT NULL DEFAULT '';

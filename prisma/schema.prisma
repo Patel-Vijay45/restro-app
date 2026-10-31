@@ -77,19 +77,24 @@ enum PaymentMode {
 }
 
 model Outlet {
-  id         String     @id @default(cuid())
-  name       String
-  type       OutletType
-  address    String     @default("")
-  phone      String     @default("")
-  upiId      String     @default("") // shown as a QR code on bills
-  billFooter String     @default("Thank you! Visit again.")
-  paperWidth Int        @default(80) // receipt printer paper, 58 or 80 mm
-  gstEnabled Boolean    @default(false)
-  gstin      String     @default("")
-  gstRateBp  Int        @default(500) // basis points: 500 = 5%
-  sortOrder  Int        @default(0)
-  createdAt  DateTime   @default(now())
+  id            String     @id @default(cuid())
+  name          String
+  type          OutletType
+  address       String     @default("")
+  phone         String     @default("")
+  upiId         String     @default("") // shown as a QR code on bills
+  billFooter    String     @default("Thank you! Visit again.")
+  paperWidth    Int        @default(80) // receipt printer paper, 58 or 80 mm
+  gstEnabled    Boolean    @default(false)
+  gstin         String     @default("")
+  gstRateBp     Int        @default(500) // basis points: 500 = 5%
+  // shown on the public website
+  tagline       String     @default("")
+  hours         String     @default("") // e.g. "Every day, 11 AM – 11 PM"
+  mapsUrl       String     @default("") // Google Maps link for "Directions"
+  showOnWebsite Boolean    @default(true)
+  sortOrder     Int        @default(0)
+  createdAt     DateTime   @default(now())
 
   staff       Staff[]
   tables      DiningTable[]

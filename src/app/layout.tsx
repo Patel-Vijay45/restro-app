@@ -2,10 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "DFC Staff",
-  description: "DFC Family Restaurant: orders, kitchen, billing",
-  manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "DFC Staff", statusBarStyle: "black" },
+  title: "DFC Family Restaurant",
+  description: "Veg & non-veg family restaurant in Gajendragad",
 };
 
 export const viewport: Viewport = {

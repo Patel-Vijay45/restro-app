@@ -166,6 +166,10 @@ export async function saveOutlet(form: FormData) {
   if (upiId && !/^[\w.\-]+@[\w.\-]+$/.test(upiId)) back(path, "UPI ID looks wrong (example: dfc@okaxis)");
   if (gstEnabled && !text(form, "gstin")) back(path, "Enter the GSTIN to turn on GST");
   if (!(gstRate >= 0 && gstRate <= 28)) back(path, "Enter a valid GST rate");
+  const mapsUrl = text(form, "mapsUrl", 300);
+  if (mapsUrl && !/^https:\/\/(maps\.app\.goo\.gl|goo\.gl|(www\.)?google\.[a-z.]+|maps\.google\.[a-z.]+)\//.test(mapsUrl)) {
+    back(path, "Paste a Google Maps link (from Google Maps → Share → Copy link)");
+  }
 
   await db.outlet.update({
     where: { id: me.outletId },
@@ -179,6 +183,10 @@ export async function saveOutlet(form: FormData) {
       gstEnabled,
       gstin: text(form, "gstin", 15).toUpperCase(),
       gstRateBp: Math.round(gstRate * 100),
+      tagline: text(form, "tagline", 80),
+      hours: text(form, "hours", 80),
+      mapsUrl,
+      showOnWebsite: form.get("showOnWebsite") === "on",
     },
   });
   back(`${path}?saved=1`);

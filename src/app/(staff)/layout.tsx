@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { CAN_MANAGE, CAN_ORDER, CAN_SEE_KITCHEN, requireStaff } from "@/lib/auth";
 import { logout } from "@/app/actions/auth";
@@ -7,6 +8,13 @@ import RequestBanner from "@/components/RequestBanner";
 import { lowStockCount } from "@/lib/ingredients";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "DFC Staff",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "DFC Staff", statusBarStyle: "black" },
+  robots: { index: false },
+};
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const me = await requireStaff();
