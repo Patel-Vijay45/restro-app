@@ -3,6 +3,7 @@ import { CAN_MANAGE, CAN_ORDER, CAN_SEE_KITCHEN, requireStaff } from "@/lib/auth
 import { logout } from "@/app/actions/auth";
 import BottomNav, { type NavLink } from "@/components/BottomNav";
 import OutletSwitcher from "@/components/OutletSwitcher";
+import RequestBanner from "@/components/RequestBanner";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,9 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   const me = await requireStaff();
   const outlets = await db.outlet.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, name: true } });
   const outlet = outlets.find((o) => o.id === me.outletId);
+  const requestIds = CAN_ORDER.includes(me.role)
+    ? (await db.tableRequest.findMany({ where: { outletId: me.outletId, status: "PENDING" }, select: { id: true } })).map((r) => r.id)
+    : [];
 
   const links: NavLink[] = [];
   if (CAN_ORDER.includes(me.role)) links.push({ href: "/orders", label: "Orders", icon: "🍽️" });
@@ -34,6 +38,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
           </form>
         </div>
       </header>
+      <RequestBanner ids={requestIds} />
       <main className="mx-auto max-w-3xl px-4 pt-4">{children}</main>
       <BottomNav links={links} />
     </div>

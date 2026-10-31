@@ -183,3 +183,14 @@ export async function saveOutlet(form: FormData) {
   });
   back(`${path}?saved=1`);
 }
+
+/** New QR secret for a table: the old printed QR stops working (use if a photo of it is being misused). */
+export async function resetTableQr(form: FormData) {
+  const me = await requireStaff(CAN_MANAGE);
+  const { randomBytes } = await import("node:crypto");
+  await db.diningTable.updateMany({
+    where: { id: text(form, "id"), outletId: me.outletId },
+    data: { qrToken: randomBytes(12).toString("base64url") },
+  });
+  back("/manage/tables?reset=1");
+}

@@ -5,12 +5,13 @@ import type { KotStatus, OrderType, PaymentMode, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { CAN_MANAGE, CAN_ORDER, CAN_SEE_KITCHEN, CAN_TAKE_PAYMENT, requireStaff, type Me } from "@/lib/auth";
 import { nextNumber } from "@/lib/counters";
+import { createKot, UserError, tableOrderId, type CartLine } from "@/lib/orderOps";
 import { calculateBill, type Discount } from "@/lib/bill";
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 type Tx = Prisma.TransactionClient;
 
-export type CartLine = { menuItemId: string; qty: number; note: string };
+export type { CartLine };
 
 function fail(error: string): { ok: false; error: string } {
   return { ok: false, error };
@@ -19,33 +20,6 @@ function fail(error: string): { ok: false; error: string } {
 function refresh() {
   revalidatePath("/", "layout");
 }
-
-/** Check the cart against the menu and copy names and prices from the database (never trust prices from the phone). */
-async function priceCart(tx: Tx, outletId: string, cart: CartLine[]) {
-  const lines = cart.filter((l) => l.qty > 0);
-  if (lines.length === 0) throw new UserError("Add at least one item");
-  if (lines.some((l) => !Number.isInteger(l.qty) || l.qty > 99)) throw new UserError("Check the quantities");
-
-  const items = await tx.menuItem.findMany({
-    where: { id: { in: lines.map((l) => l.menuItemId) }, outletId, active: true },
-  });
-  const byId = new Map(items.map((i) => [i.id, i]));
-  return lines.map((l) => {
-    const item = byId.get(l.menuItemId);
-    if (!item) throw new UserError("An item is no longer on the menu. Refresh and try again.");
-    if (!item.isAvailable) throw new UserError(`${item.name} is sold out`);
-    return {
-      menuItemId: item.id,
-      name: item.name,
-      price: item.price,
-      isVeg: item.isVeg,
-      qty: l.qty,
-      note: l.note.trim().slice(0, 120),
-    };
-  });
-}
-
-class UserError extends Error {}
 
 async function run<T extends object>(fn: () => Promise<T>): Promise<Result<T>> {
   try {
@@ -56,16 +30,6 @@ async function run<T extends object>(fn: () => Promise<T>): Promise<Result<T>> {
     if (e instanceof UserError) return fail(e.message);
     throw e;
   }
-}
-
-async function createKot(tx: Tx, me: Me, orderId: string, cart: CartLine[]) {
-  const lines = await priceCart(tx, me.outletId, cart);
-  const number = await nextNumber(tx, me.outletId, "kot");
-  const kot = await tx.kot.create({
-    data: { outletId: me.outletId, orderId, number, createdById: me.staffId },
-  });
-  await tx.orderItem.createMany({ data: lines.map((l) => ({ ...l, orderId, kotId: kot.id })) });
-  return kot;
 }
 
 /**
@@ -93,28 +57,7 @@ export async function sendToKitchen(input: {
         if (order.status === "PAID" || order.status === "CANCELLED") throw new UserError("This order is closed");
         if (order.status === "BILLED") await tx.order.update({ where: { id: order.id }, data: { status: "OPEN" } });
       } else if (input.tableId) {
-        const table = await tx.diningTable.findFirst({ where: { id: input.tableId, outletId: me.outletId, active: true } });
-        if (!table) throw new UserError("Table not found");
-        // Two waiters at the same table at once must not open two orders.
-        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${table.id}))`;
-        const running = await tx.order.findFirst({
-          where: { tableId: table.id, status: { in: ["OPEN", "BILLED"] } },
-        });
-        if (running) {
-          orderId = running.id;
-          if (running.status === "BILLED") await tx.order.update({ where: { id: running.id }, data: { status: "OPEN" } });
-        } else {
-          const order = await tx.order.create({
-            data: {
-              outletId: me.outletId,
-              type: "DINE_IN",
-              tableId: table.id,
-              guests: input.guests && input.guests > 0 ? input.guests : null,
-              createdById: me.staffId,
-            },
-          });
-          orderId = order.id;
-        }
+        orderId = await tableOrderId(tx, me, input.tableId, input.guests);
       } else {
         const tokenNo = await nextNumber(tx, me.outletId, "token");
         const order = await tx.order.create({
@@ -224,6 +167,14 @@ async function billOrder(tx: Tx, me: Me, orderId: string, discount: Discount) {
   const paid = order.payments.reduce((s, p) => s + p.amount, 0);
   const billNo = order.billNo ?? (await nextNumber(tx, me.outletId, "bill"));
   const settled = paid >= totals.total;
+
+  // The customer's "ask for bill" from the table QR is answered now.
+  if (order.tableId) {
+    await tx.tableRequest.updateMany({
+      where: { tableId: order.tableId, kind: "BILL", status: "PENDING" },
+      data: { status: "DONE", handledById: me.staffId, handledAt: new Date() },
+    });
+  }
 
   await tx.order.update({
     where: { id: order.id },

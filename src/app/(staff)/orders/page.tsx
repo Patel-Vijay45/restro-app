@@ -7,6 +7,8 @@ import { minutesSince } from "@/lib/time";
 import AutoRefresh from "@/components/AutoRefresh";
 import MenuPicker from "@/components/MenuPicker";
 import TokenBoard from "./TokenBoard";
+import RequestsPanel from "./RequestsPanel";
+import { pendingRequests } from "@/lib/requests";
 
 export default async function OrdersPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
   const me = await requireStaff(CAN_ORDER);
@@ -71,12 +73,16 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
   const byTable = new Map(active.filter((o) => o.tableId).map((o) => [o.tableId!, o]));
+  const requests = await pendingRequests(me.outletId);
+  const requestIcons = (tableId: string) =>
+    [...new Set(requests.filter((r) => r.tableId === tableId).map((r) => ({ CALL_WAITER: "🔔", BILL: "🧾", ORDER: "🛒" })[r.kind]))].join("");
   const takeaways = active.filter((o) => o.type === "TAKEAWAY");
   const busy = byTable.size;
 
   return (
     <div>
       <AutoRefresh />
+      <RequestsPanel requests={requests} />
       <div className="mb-3 flex items-end justify-between">
         <div>
           <h1 className="text-xl font-bold">Tables</h1>
@@ -95,12 +101,21 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         {tables.map((t) => {
           const order = byTable.get(t.id);
           const ready = order?.kots.some((k) => k.status === "READY");
+          const asking = requestIcons(t.id);
           const href = order ? `/orders/${order.id}` : `/orders/new?table=${t.id}`;
           const bg = !order ? "bg-free" : order.status === "BILLED" ? "bg-billed" : "bg-busy";
           return (
-            <Link key={t.id} href={href} className={`relative flex aspect-square flex-col justify-between rounded-2xl border border-line p-3 ${bg}`}>
+            <Link
+              key={t.id}
+              href={href}
+              className={`relative flex aspect-square flex-col justify-between rounded-2xl border p-3 ${bg} ${asking ? "border-gold ring-2 ring-gold" : "border-line"}`}
+            >
               <span className="text-2xl font-bold">{t.name}</span>
-              {order ? (
+              {asking ? (
+                <span className="animate-pulse text-xl" aria-label="Customer request">
+                  {asking}
+                </span>
+              ) : order ? (
                 <span className="text-sm">
                   <span className="block font-semibold">{rupees(running(order))}</span>
                   <span className="text-muted">

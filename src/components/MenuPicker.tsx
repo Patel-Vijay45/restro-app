@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { counterCheckout, sendToKitchen, type CartLine } from "@/app/actions/orders";
+import { customerOrder } from "@/app/actions/customer";
 import type { MenuCategory, MenuEntry } from "@/lib/menu";
 import { rupees } from "@/lib/money";
 import VegMark from "./VegMark";
@@ -11,11 +12,21 @@ export type PickerTarget =
   | { kind: "order"; orderId: string }
   | { kind: "table"; tableId: string }
   | { kind: "takeaway" }
-  | { kind: "counter" };
+  | { kind: "counter" }
+  | { kind: "customer"; token: string };
 
 type Filter = "all" | "veg" | "nonveg";
 
-export default function MenuPicker({ menu, target }: { menu: MenuCategory[]; target: PickerTarget }) {
+export default function MenuPicker({
+  menu,
+  target,
+  onSent,
+}: {
+  menu: MenuCategory[];
+  target: PickerTarget;
+  /** customer page: called after the order request is sent */
+  onSent?: () => void;
+}) {
   const router = useRouter();
   const [cart, setCart] = useState<Record<string, CartLine>>({});
   const [search, setSearch] = useState("");
@@ -62,6 +73,15 @@ export default function MenuPicker({ menu, target }: { menu: MenuCategory[]; tar
   function submit() {
     setError("");
     start(async () => {
+      if (target.kind === "customer") {
+        const r = await customerOrder(target.token, lines);
+        if (!r.ok) return setError(r.error);
+        setCart({});
+        setShowCart(false);
+        onSent?.();
+        router.refresh();
+        return;
+      }
       const result =
         target.kind === "counter"
           ? await counterCheckout(lines)
@@ -79,7 +99,12 @@ export default function MenuPicker({ menu, target }: { menu: MenuCategory[]; tar
     });
   }
 
-  const submitLabel = target.kind === "counter" ? `Charge ${rupees(total)}` : "Send to kitchen";
+  const submitLabel =
+    target.kind === "counter"
+      ? `Charge ${rupees(total)}`
+      : target.kind === "customer"
+        ? `Send order to waiter · ${rupees(total)}`
+        : "Send to kitchen";
 
   return (
     <div className="pb-24">
@@ -188,6 +213,9 @@ export default function MenuPicker({ menu, target }: { menu: MenuCategory[]; tar
                 <span className="label">Customer name (optional)</span>
                 <input className="input" value={customerName} onChange={(e) => setCustomerName(e.target.value)} />
               </label>
+            )}
+            {target.kind === "customer" && (
+              <p className="mb-3 text-sm text-muted">Your waiter will confirm the order before it goes to the kitchen.</p>
             )}
             {error && <p className="mb-2 text-sm text-nonveg">{error}</p>}
             <button onClick={submit} disabled={pending || count === 0} className="btn-gold w-full text-base">

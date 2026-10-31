@@ -78,10 +78,10 @@ async function main() {
   }
 
   const restaurant = await db.outlet.create({
-    data: { name: "DFC Family Restaurant", type: "RESTAURANT", address: "Gajendragad", sortOrder: 0 },
+    data: { name: "DFC Family Restaurant", type: "RESTAURANT", address: "Gajendragad", phone: "8160123021", sortOrder: 0 },
   });
   const stall = await db.outlet.create({
-    data: { name: "DFC Mall Stall", type: "COUNTER", address: "Gajendragad", paperWidth: 58, sortOrder: 1 },
+    data: { name: "DFC Mall Stall", type: "COUNTER", address: "Gajendragad", phone: "8160123021", paperWidth: 58, sortOrder: 1 },
   });
 
   await db.diningTable.createMany({

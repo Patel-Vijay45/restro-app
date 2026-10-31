@@ -44,6 +44,18 @@ enum KotStatus {
   SERVED
 }
 
+enum RequestKind {
+  CALL_WAITER
+  BILL
+  ORDER // customer picked dishes on the table QR; a waiter confirms before it goes to the kitchen
+}
+
+enum RequestStatus {
+  PENDING
+  DONE
+  REJECTED
+}
+
 enum PaymentMode {
   CASH
   UPI
@@ -51,19 +63,19 @@ enum PaymentMode {
 }
 
 model Outlet {
-  id          String     @id @default(cuid())
-  name        String
-  type        OutletType
-  address     String     @default("")
-  phone       String     @default("")
-  upiId       String     @default("") // shown as a QR code on bills
-  billFooter  String     @default("Thank you! Visit again.")
-  paperWidth  Int        @default(80) // receipt printer paper, 58 or 80 mm
-  gstEnabled  Boolean    @default(false)
-  gstin       String     @default("")
-  gstRateBp   Int        @default(500) // basis points: 500 = 5%
-  sortOrder   Int        @default(0)
-  createdAt   DateTime   @default(now())
+  id         String     @id @default(cuid())
+  name       String
+  type       OutletType
+  address    String     @default("")
+  phone      String     @default("")
+  upiId      String     @default("") // shown as a QR code on bills
+  billFooter String     @default("Thank you! Visit again.")
+  paperWidth Int        @default(80) // receipt printer paper, 58 or 80 mm
+  gstEnabled Boolean    @default(false)
+  gstin      String     @default("")
+  gstRateBp  Int        @default(500) // basis points: 500 = 5%
+  sortOrder  Int        @default(0)
+  createdAt  DateTime   @default(now())
 
   staff      Staff[]
   tables     DiningTable[]
@@ -72,25 +84,27 @@ model Outlet {
   orders     Order[]
   kots       Kot[]
   counters   Counter[]
+  requests   TableRequest[]
 }
 
 model Staff {
-  id        String   @id @default(cuid())
-  name      String
-  role      Role
-  pinHash   String
+  id          String    @id @default(cuid())
+  name        String
+  role        Role
+  pinHash     String
   // null means the person can work at every outlet (owner)
-  outletId  String?
-  outlet    Outlet?  @relation(fields: [outletId], references: [id])
-  active    Boolean  @default(true)
+  outletId    String?
+  outlet      Outlet?   @relation(fields: [outletId], references: [id])
+  active      Boolean   @default(true)
   // wrong-PIN protection: locked for a few minutes after repeated mistakes
   failedPins  Int       @default(0)
   lockedUntil DateTime?
-  createdAt DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
-  ordersCreated Order[]   @relation("OrderCreatedBy")
-  kotsCreated   Kot[]     @relation("KotCreatedBy")
-  payments      Payment[]
+  requestsHandled TableRequest[]
+  ordersCreated   Order[]        @relation("OrderCreatedBy")
+  kotsCreated     Kot[]          @relation("KotCreatedBy")
+  payments        Payment[]
 }
 
 model DiningTable {
@@ -104,7 +118,8 @@ model DiningTable {
   qrToken   String  @unique @default(cuid())
   active    Boolean @default(true)
 
-  orders Order[]
+  orders   Order[]
+  requests TableRequest[]
 
   @@unique([outletId, name])
 }
@@ -138,20 +153,20 @@ model MenuItem {
 }
 
 model Order {
-  id            String      @id @default(cuid())
+  id            String       @id @default(cuid())
   outletId      String
-  outlet        Outlet      @relation(fields: [outletId], references: [id])
+  outlet        Outlet       @relation(fields: [outletId], references: [id])
   type          OrderType
-  status        OrderStatus @default(OPEN)
+  status        OrderStatus  @default(OPEN)
   tableId       String?
   table         DiningTable? @relation(fields: [tableId], references: [id])
   tokenNo       Int? // counter orders: number called out when food is ready
   billNo        Int? // set when the bill is generated
   guests        Int?
-  customerName  String      @default("")
-  customerPhone String      @default("")
+  customerName  String       @default("")
+  customerPhone String       @default("")
   createdById   String
-  createdBy     Staff       @relation("OrderCreatedBy", fields: [createdById], references: [id])
+  createdBy     Staff        @relation("OrderCreatedBy", fields: [createdById], references: [id])
 
   // filled when the bill is generated (paise)
   subtotal     Int    @default(0)
@@ -232,4 +247,24 @@ model Counter {
   value    Int    @default(0)
 
   @@id([outletId, key, day])
+}
+
+// Something a customer asked for from the table QR page.
+model TableRequest {
+  id          String        @id @default(cuid())
+  outletId    String
+  outlet      Outlet        @relation(fields: [outletId], references: [id])
+  tableId     String
+  table       DiningTable   @relation(fields: [tableId], references: [id])
+  kind        RequestKind
+  status      RequestStatus @default(PENDING)
+  // ORDER only: [{ menuItemId, qty, note }]
+  items       Json?
+  handledById String?
+  handledBy   Staff?        @relation(fields: [handledById], references: [id])
+  handledAt   DateTime?
+  createdAt   DateTime      @default(now())
+
+  @@index([outletId, status])
+  @@index([tableId, createdAt])
 }

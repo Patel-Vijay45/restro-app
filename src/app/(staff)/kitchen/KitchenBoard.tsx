@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import type { KotStatus } from "@prisma/client";
 import { setKotStatus } from "@/app/actions/orders";
 import VegMark from "@/components/VegMark";
+import { beep } from "@/lib/beep";
 
 type Ticket = {
   id: string;
@@ -18,21 +19,6 @@ const NEXT: Partial<Record<KotStatus, { to: KotStatus; label: string; className:
   NEW: { to: "PREPARING", label: "Start cooking", className: "btn-gold" },
   PREPARING: { to: "READY", label: "Food ready ✓", className: "btn-primary" },
 };
-
-function beep() {
-  try {
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.frequency.value = 880;
-    gain.gain.value = 0.2;
-    osc.connect(gain).connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.35);
-  } catch {
-    // sound is a nice-to-have
-  }
-}
 
 export default function KitchenBoard({ tickets }: { tickets: Ticket[] }) {
   const [pending, start] = useTransition();
