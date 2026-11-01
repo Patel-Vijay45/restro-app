@@ -1,27 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { KotStatus } from "@prisma/client";
 import { customerCall } from "@/app/actions/customer";
+import type { CustomerStatus } from "@/lib/customerStatus";
 import type { MenuCategory } from "@/lib/menu";
 import { rupees } from "@/lib/money";
 import MenuPicker from "@/components/MenuPicker";
-import VegMark from "@/components/VegMark";
-
-export type CustomerOrder = {
-  items: { id: string; name: string; qty: number; isVeg: boolean; price: number; status: KotStatus }[];
-  running: number;
-  billTotal: number | null;
-  due: number | null;
-  upi: string | null;
-};
-
-const STATUS: Record<KotStatus, { label: string; className: string }> = {
-  NEW: { label: "Order received", className: "bg-line text-ink" },
-  PREPARING: { label: "Cooking", className: "bg-busy text-ink" },
-  READY: { label: "Coming to you", className: "bg-veg text-white" },
-  SERVED: { label: "Served", className: "bg-free text-veg" },
-};
+import OrderStatusView from "@/components/OrderStatusView";
 
 type Props = {
   token: string;
@@ -29,14 +14,14 @@ type Props = {
   tableName: string;
   phone: string;
   menu: MenuCategory[];
-  order: CustomerOrder | null;
-  waiting: { menuItemId: string; qty: number; name: string }[];
+  status: CustomerStatus;
+  hasOrder: boolean;
   calling: boolean;
   billAsked: boolean;
 };
 
 export default function CustomerView(p: Props) {
-  const [tab, setTab] = useState<"menu" | "order">(p.order || p.waiting.length ? "order" : "menu");
+  const [tab, setTab] = useState<"menu" | "order">(p.status.rounds.length ? "order" : "menu");
   const [message, setMessage] = useState("");
   const [pending, start] = useTransition();
 
@@ -47,19 +32,20 @@ export default function CustomerView(p: Props) {
     });
   }
 
-  const itemCount = (p.order?.items.reduce((s, i) => s + i.qty, 0) ?? 0) + p.waiting.reduce((s, i) => s + i.qty, 0);
+  const itemCount = p.status.rounds.filter((r) => r.status !== "REJECTED").flatMap((r) => r.items).reduce((s, i) => s + i.qty, 0);
 
   return (
     <div className="min-h-dvh pb-24">
       <header className="sticky top-0 z-30 bg-ink text-white">
         <div className="mx-auto flex h-14 max-w-3xl items-center gap-3 px-4">
-          <span className="flex size-9 items-center justify-center rounded-full font-serif text-[11px] font-bold text-gold ring-1 ring-gold">DFC</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="" width={36} height={36} className="size-9 rounded-full" />
           <div className="min-w-0 flex-1 leading-tight">
             <div className="truncate font-semibold">{p.outletName}</div>
             <div className="text-xs text-gold">Table {p.tableName}</div>
           </div>
           {p.phone && (
-            <a href={`tel:${p.phone.replace(/\s/g, "")}`} className="rounded-lg border border-white/20 px-2.5 py-1 text-sm">
+            <a href={`tel:+91${p.phone.replace(/\D/g, "").slice(-10)}`} className="rounded-lg border border-white/20 px-2.5 py-1 text-sm">
               Call
             </a>
           )}
@@ -91,8 +77,31 @@ export default function CustomerView(p: Props) {
               setTab("order");
             }}
           />
+        ) : p.status.rounds.length === 0 ? (
+          <div className="py-12 text-center">
+            <div className="mb-2 text-4xl">🍽️</div>
+            <p className="mb-4 text-muted">Nothing ordered yet.</p>
+            <button onClick={() => setTab("menu")} className="btn-gold">
+              See the menu
+            </button>
+          </div>
         ) : (
-          <OrderTab {...p} onMenu={() => setTab("menu")} />
+          <div className="space-y-4">
+            <OrderStatusView status={p.status} />
+            {p.status.upi && p.status.due ? (
+              <div className="card space-y-2 p-4 text-center">
+                <a href={p.status.upi} className="btn-gold w-full text-base">
+                  Pay {rupees(p.status.due)} by UPI
+                </a>
+                <p className="text-xs text-muted">Opens GPay / PhonePe / Paytm. After paying, show the success screen to the cashier.</p>
+              </div>
+            ) : null}
+            {p.status.stage < 6 && (
+              <button onClick={() => setTab("menu")} className="btn-outline w-full">
+                + Add more items
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -101,75 +110,11 @@ export default function CustomerView(p: Props) {
           <button disabled={pending || p.calling} onClick={() => call("CALL_WAITER")} className="btn-outline">
             {p.calling ? "✓ Waiter called" : "🔔 Call waiter"}
           </button>
-          <button disabled={pending || p.billAsked || !p.order} onClick={() => call("BILL")} className="btn-primary">
+          <button disabled={pending || p.billAsked || !p.hasOrder} onClick={() => call("BILL")} className="btn-primary">
             {p.billAsked ? "✓ Bill asked" : "🧾 Ask for bill"}
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function OrderTab(p: Props & { onMenu: () => void }) {
-  if (!p.order && p.waiting.length === 0) {
-    return (
-      <div className="py-12 text-center">
-        <div className="mb-2 text-4xl">🍽️</div>
-        <p className="mb-4 text-muted">Nothing ordered yet.</p>
-        <button onClick={p.onMenu} className="btn-gold">
-          See the menu
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {p.waiting.length > 0 && (
-        <div className="card border-gold p-4">
-          <div className="mb-2 flex items-center gap-2 font-semibold">
-            <span className="relative flex size-2.5">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-gold opacity-75" />
-              <span className="relative inline-flex size-2.5 rounded-full bg-gold" />
-            </span>
-            Waiting for waiter to confirm
-          </div>
-          <ul className="text-sm">
-            {p.waiting.map((w, i) => (
-              <li key={i}>
-                {w.qty} × {w.name}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {p.order && (
-        <div className="card divide-y divide-line">
-          {p.order.items.map((i) => (
-            <div key={i.id} className="flex items-center gap-2 p-3">
-              <VegMark veg={i.isVeg} />
-              <span className="flex-1">
-                {i.qty} × {i.name}
-              </span>
-              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS[i.status].className}`}>{STATUS[i.status].label}</span>
-            </div>
-          ))}
-          <div className="flex justify-between p-3 font-bold">
-            <span>{p.order.billTotal !== null ? "Bill total" : "Total so far"}</span>
-            <span>{rupees(p.order.billTotal ?? p.order.running)}</span>
-          </div>
-        </div>
-      )}
-
-      {p.order?.upi && p.order.due !== null && (
-        <div className="card space-y-2 p-4 text-center">
-          <a href={p.order.upi} className="btn-gold w-full text-base">
-            Pay {rupees(p.order.due)} by UPI
-          </a>
-          <p className="text-xs text-muted">Opens GPay / PhonePe / Paytm. After paying, show the success screen to the cashier.</p>
-        </div>
-      )}
     </div>
   );
 }

@@ -2,6 +2,14 @@
 
 Newest first. Add an entry for every change that people will notice.
 
+## 2026-11-01: Customer ordering and dish photos
+- **Website takeaway orders** in the system (WhatsApp ordering removed): name + mobile, pay at the counter on pickup,
+  live tracking page with token number, add more items until paid.
+- **One status flow** for table QR and website: Sent → Accepted → Cooking → Ready → Served / Collected → Bill → Paid,
+  with each round of added items shown separately; rejected orders show the staff's reason.
+- Staff accept or reject website orders like table orders; stall token board shows online orders until collected and paid.
+- **Dish photos**: upload from the phone (shrunk automatically), shown on the website and table QR menu; food icons for dishes without one.
+
 ## 2026-11-01
 - Free online test setup (Vercel + Neon): `deploy/FREE-TEST-SETUP.md`.
 - Documentation: user guide, business flows and rules, developer guide, project rules for AI assistants.

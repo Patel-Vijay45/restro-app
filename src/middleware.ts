@@ -11,6 +11,6 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  // public: website (/), login page, customer table pages (/t/...), sitemap, robots, static files
-  matcher: ["/((?!login|t/|_next/|favicon|icon|manifest|sitemap|robots|.*\\.(?:png|svg|ico|webmanifest|xml|txt)$).*)"],
+  // public: website (/), login, table QR pages (/t/...), order tracking (/track/...), dish photos, sitemap, robots, static files
+  matcher: ["/((?!login|t/|track/|photo/|_next/|favicon|icon|manifest|sitemap|robots|.*\\.(?:png|svg|ico|webmanifest|xml|txt)$).*)"],
 };

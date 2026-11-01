@@ -180,7 +180,7 @@ async function billOrder(tx: Tx, me: Me, orderId: string, discount: Discount) {
 
   // The customer's "ask for bill" from the table QR is answered now.
   if (order.tableId) {
-    await tx.tableRequest.updateMany({
+    await tx.customerRequest.updateMany({
       where: { tableId: order.tableId, kind: "BILL", status: "PENDING" },
       data: { status: "DONE", handledById: me.staffId, handledAt: new Date() },
     });

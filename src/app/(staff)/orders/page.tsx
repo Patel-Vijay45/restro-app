@@ -28,17 +28,23 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
     const tokens = await db.order.findMany({
       where: {
         outletId: me.outletId,
-        type: "COUNTER",
-        status: { in: ["BILLED", "PAID"] },
-        kots: { some: { status: { not: "SERVED" } } },
+        // counter sales (paid first) and website takeaway orders (paid on collection)
+        OR: [
+          { type: "COUNTER", status: { in: ["BILLED", "PAID"] } },
+          { type: "TAKEAWAY", status: { in: ["OPEN", "BILLED", "PAID"] } },
+        ],
+        // stays on the board until the food is collected AND the bill is paid
+        AND: [{ OR: [{ kots: { some: { status: { not: "SERVED" } } } }, { status: { in: ["OPEN", "BILLED"] } }] }],
       },
       include: { items: { where: { cancelled: false } }, kots: true },
       orderBy: { createdAt: "asc" },
     });
     const showTokens = view === "tokens";
+    const stallRequests = await pendingRequests(me.outletId);
     return (
       <div>
-        <AutoRefresh seconds={showTokens ? 4 : 15} />
+        <AutoRefresh seconds={showTokens || stallRequests.length ? 4 : 10} />
+        <RequestsPanel requests={stallRequests} />
         <div className="mb-3 grid grid-cols-2 gap-1 rounded-xl bg-line/60 p-1 text-sm font-semibold">
           <Link href="/orders" className={`rounded-lg py-2 text-center ${!showTokens ? "bg-white shadow-sm" : "text-muted"}`}>
             New order
@@ -56,7 +62,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
               orderId: o.id,
               tokenNo: o.tokenNo ?? 0,
               paid: o.status === "PAID",
-              total: o.total,
+              total: o.status === "OPEN" ? o.items.reduce((sum, i) => sum + i.price * i.qty, 0) : o.total,
+              online: o.channel === "ONLINE" ? { name: o.customerName, phone: o.customerPhone, pickupTime: o.pickupTime } : null,
               items: o.items.map((i) => `${i.qty} × ${i.name}`),
               kots: o.kots.filter((k) => k.status !== "SERVED").map((k) => ({ id: k.id, status: k.status })),
             }))}
@@ -148,7 +155,9 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
           {takeaways.map((o) => (
             <Link key={o.id} href={`/orders/${o.id}`} className="flex items-center justify-between p-3">
               <span>
-                <span className="font-semibold">Token {o.tokenNo}</span>
+                <span className="font-semibold">
+                  {o.channel === "ONLINE" && "🌐 "}Token {o.tokenNo}
+                </span>
                 {o.customerName && <span className="text-muted"> · {o.customerName}</span>}
                 {o.kots.some((k) => k.status === "READY") && (
                   <span className="ml-2 rounded-full bg-veg px-2 py-0.5 text-[11px] font-bold text-white">READY</span>

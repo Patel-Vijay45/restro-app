@@ -1,4 +1,4 @@
-// Public website: buttons, live menu, WhatsApp takeaway message, stall tab, veg filter, sold out, /staff entry, desktop layout.
+// Public website: buttons, live menu, takeaway checkout → tracking page, "Your order" banner, stall tab, veg filter, sold out, /staff entry, desktop layout.
 const { BASE, ctx, login, shot, check, run } = require("./helpers");
 
 run(async (browser) => {
@@ -16,19 +16,20 @@ run(async (browser) => {
   await site.getByRole('button', { name: 'More Chicken Biryani' }).click();
   await site.getByRole('button', { name: 'Add Butter Naan' }).click();
   await shot(site, '02-menu');
-  await site.getByRole('button', { name: /Order on WhatsApp/ }).click();
+  await site.getByRole('button', { name: /Order takeaway/ }).click();
   await site.getByLabel('Your name').fill('Vijay');
-  await site.getByPlaceholder('e.g. 8:30 PM').fill('8:30 PM');
-  await shot(site, '03-whatsapp');
-  const href = await site.getByRole('link', { name: 'Send order on WhatsApp' }).getAttribute('href');
-  const text = decodeURIComponent(href.split('?text=')[1]);
-  check('whatsapp number', href.startsWith('https://wa.me/918160123021?text='));
-  check('message items', text.includes('2 × Chicken Biryani (₹400)') && text.includes('1 × Butter Naan (₹45)'));
-  check('message total + name', text.includes('Total: ₹445') && text.includes('Name: Vijay') && text.includes('Pickup time: 8:30 PM'));
-  console.log('--- message ---\n' + text + '\n---');
+  await site.getByLabel('Mobile number').fill('98765 43210');
+  await shot(site, '03-checkout');
+  check('checkout total', await site.locator('text=Place order · ₹445').count() === 1);
+  await site.getByRole('button', { name: /Place order/ }).click();
+  await site.waitForURL(/\/track\//);
+  await site.waitForSelector('text=Waiting for the restaurant');
+  check('no WhatsApp ordering left', await site.locator('text=/Order on WhatsApp/').count() === 0);
+  await site.goto(BASE + '/');
+  await site.waitForSelector('text=/Your order from .* Track it/');
+  console.log('ok  "Your order" banner on the website');
 
   // stall tab + veg filter
-  await site.getByRole('button', { name: 'Add more' }).click();
   await site.getByRole('button', { name: 'Mall Stall' }).click();
   await site.waitForSelector('text=Chicken Shawarma');
   await site.getByRole('button', { name: 'Veg', exact: true }).click();

@@ -89,6 +89,7 @@ async function startServer() {
     .filter((f) => !only || f.startsWith(only))
     .sort();
 
+  if (!only) fs.rmSync(path.join(__dirname, "screenshots"), { recursive: true, force: true });
   freshDatabase();
   const server = await startServer();
   const results = [];

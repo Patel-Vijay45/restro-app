@@ -28,8 +28,11 @@ src/
       reports/             sales report
       manage/              menu (+ recipe), tables, staff, outlet settings
     t/[token]/             customer page behind a table QR (public)
+    track/[token]/         customer tracking page for a website takeaway order (public)
+    photo/[id]/            dish photos (long browser cache)
     print/                 thermal receipt, table QR sheet
-    actions/               ALL data changes (server actions): orders, customer, requests, stock, manage, auth
+    actions/               ALL data changes (server actions): orders, customer (table + website, no login),
+                           requests (staff accept/reject), photos, stock, manage, auth
     robots.ts, sitemap.ts  search engines
   components/              shared UI (MenuPicker, VegMark, BottomNav, …); site/ = website-only
   lib/
@@ -38,7 +41,9 @@ src/
     bill.ts                bill maths (tested)
     money.ts               paise ⇄ "₹" (tested)
     units.ts               stock units and costs (tested)
-    orderOps.ts            price a cart, open/append a table order, create a KOT (shared by waiter, QR and stall)
+    orderOps.ts            price a cart, open/append a table order, create a KOT (shared by waiter, QR, website and stall)
+    customerStatus.ts      what a customer sees: rounds, progress stage, bill (table page and tracking page)
+    requests.ts            pending customer requests for the staff panel
     stock.ts               stock moves: deduct for orders, return, purchase average cost
     counters.ts            bill / KOT / token numbers
     time.ts                India time helpers
@@ -50,7 +55,9 @@ deploy/                    server (Docker) and free test (Vercel + Neon) guides
 
 1. **Every change goes through a server action** in `src/app/actions/`. Pages only read.
 2. **Every action and staff page starts with `requireStaff(ROLE_LIST)`.** Never trust the client about who is logged in.
-3. **Every query is limited to the user's outlet** (`outletId: me.outletId`). Customers are identified only by the table's `qrToken`.
+3. **Every query is limited to the user's outlet** (`outletId: me.outletId`). Customers are identified only by the table's
+   `qrToken` or the website order's `trackToken` (random, unguessable). Customer actions never change orders directly:
+   they create a `CustomerRequest` that staff accept.
 4. **Never trust prices, names or totals from the browser.** Load them from the database (`priceCart` in `orderOps.ts`).
 5. **Money is integer paise. Stock is integer milli-units.** Never store floats. Convert only for display/input (`money.ts`, `units.ts`).
 6. **Dates are shown in India time** (`time.ts`). Daily numbers reset on the India date.
@@ -121,3 +128,4 @@ npm run test:e2e    # browser tests on their own database (about 3 minutes)
 - `next.config.ts` builds `standalone` output for Docker but not on Vercel.
 - Vercel's free plan is for testing only (no business use).
 - The table QR codes contain the site address: decide the final domain before printing them.
+- The `CustomerRequest` model is stored in the database table `TableRequest` (`@@map`), its name before website orders existed.

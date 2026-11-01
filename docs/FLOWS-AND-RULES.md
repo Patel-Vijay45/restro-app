@@ -18,14 +18,14 @@ Each outlet has its own menu, prices, tables, staff, stock, bill numbers and set
 |---|:-:|:-:|:-:|:-:|:-:|
 | Work at every outlet (switch outlet) | ✓ | – | – | – | – |
 | Take orders, add items, takeaway | ✓ | ✓ | ✓ | ✓ | – |
-| Confirm / reject customer QR requests | ✓ | ✓ | ✓ | ✓ | – |
+| Accept / reject customer orders (table QR and website) | ✓ | ✓ | ✓ | ✓ | – |
 | Generate a bill (no discount) | ✓ | ✓ | ✓ | ✓ | – |
 | Give a discount | ✓ | ✓ | ✓ | – | – |
 | Take payments, stall counter sales | ✓ | ✓ | ✓ | – | – |
 | Kitchen screen: start cooking / ready | ✓ | ✓ | –* | –* | ✓ |
 | Mark food served | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Remove an item already sent / cancel an order | ✓ | ✓ | – | – | – |
-| Menu, recipes, tables, QR codes, outlet settings | ✓ | ✓ | – | – | – |
+| Menu, dish photos, recipes, tables, QR codes, outlet settings | ✓ | ✓ | – | – | – |
 | Stock: purchase, wastage, count, ingredients | ✓ | ✓ | – | – | – |
 | Sales report | ✓ | ✓ | – | – | – |
 | Add / change waiters, kitchen, cashiers | ✓ | ✓ (own outlet) | – | – | – |
@@ -37,7 +37,7 @@ Role lists live in `src/lib/auth.ts` (`CAN_ORDER`, `CAN_TAKE_PAYMENT`, `CAN_SEE_
 ## Order flow (restaurant)
 
 ```
-Waiter / confirmed QR request
+Waiter, or an accepted customer order (table QR / website)
         │  Send to kitchen  → creates a KOT (kitchen ticket) and takes recipe amounts out of stock
         ▼
      OPEN ──── more items → another KOT ────┐
@@ -99,15 +99,61 @@ The token stays on the **Tokens** board until marked **Collected** (KOT `SERVED`
 - Removing an item from a **billed** order sends it back to `OPEN` (bill must be generated again).
 - An order with any payment cannot be cancelled.
 
-## Table QR (customers)
+## Customer orders (table QR and website)
 
-- Each table has a secret link `/t/<code>` printed as a QR code. No login.
-- Customers can see the menu, their table's running order and status, call the waiter, ask for the bill, and see a Pay by UPI button once billed.
-- **Customer orders are requests.** Nothing reaches the kitchen until a staff member taps *Send to kitchen*.
-- Limits per table: 10 requests per 10 minutes, at most 2 order requests waiting, at most 30 items per request.
+Customers order from their own phone in two places, with **one flow**:
+
+| | Table QR (`/t/<code>`) | Website takeaway (`/` → `/track/<code>`) |
+|---|---|---|
+| Who | People sitting at a table | Anyone; name and 10-digit mobile required |
+| Becomes | The table's running order (dine-in) | A takeaway order with a token number, marked 🌐 online |
+| Pay | At the end, from the bill (cash / UPI / card) | When collecting, at the counter (or Pay by UPI once billed) |
+
+**Steps the customer sees**
+
+```
+Sent ─▶ Accepted ─▶ Cooking ─▶ Ready (for pickup) ─▶ Served / Collected ─▶ Bill ─▶ Paid
+ │
+ └─▶ Not accepted (staff rejected it; the reason they typed is shown)
+```
+
+- **Sent**: the order is a *request*. Nothing reaches the kitchen until staff tap **Accept / Send to kitchen**.
+- **Accepted → Cooking → Ready → Served** follow the kitchen ticket (KOT): `NEW → PREPARING → READY → SERVED`.
+- **Bill** when staff generate the bill; **Paid** when payments cover it.
+- **Add more items:** until the order is paid, the customer can send more dishes. Each sending is a new **round** with its own
+  status ("Your order", "Added items 1", …). Every accepted round is added to the **same order and the same bill**.
+  The top progress bar follows the least advanced round that is not served yet.
+- Staff-entered rounds for the same table also show on the customer's page.
+- Accepting or rejecting: one tap per request; if two staff tap at the same time, only one counts.
+
+**Limits** (against pranks and mistakes)
+- Table: 10 requests per 10 minutes, at most 2 order requests waiting, at most 30 items per request.
+- Website: name and a valid Indian mobile number required; per number at most 2 orders waiting and 10 requests per 10 minutes;
+  per tracking link at most 2 rounds waiting; at most 30 items per request.
+- Customers can't add to an order that is paid or cancelled, or to a website order that was never accepted.
 - Pressing *Call waiter* or *Ask for bill* twice does not create two requests.
 - *Ask for bill* only works when the table has an order. Generating the bill closes the bill request automatically.
-- **New QR** (Manage → Tables) changes the secret: old printed codes stop working. Hidden tables' codes don't work either.
+
+**Table QR codes**
+- Each table has a secret link printed as a QR code. **New QR** (Manage → Tables) changes it: old printed codes stop working.
+  Hidden tables' codes don't work either.
+- The table page shows the running order of the people at the table now (and rejected requests from the last hour).
+  After the bill is paid, the page starts empty for the next customers.
+
+**Website orders**
+- The tracking page link (`/track/<code>`) is the customer's only key to their order. The phone remembers it for a day,
+  so the website shows a "Your order · Track it" bar.
+- At the restaurant they appear in **Orders → Takeaway** (🌐), at the stall on the **Tokens** board.
+- A stall token stays on the board until the food is **collected and** the bill is **paid**.
+
+## Dish photos
+
+- Owner / manager add a photo per dish (Manage → Menu → dish → **Add photo**), from the camera or gallery.
+- The phone shrinks it (longest side 900 px, JPEG) before upload; the server accepts JPG / PNG / WebP up to 600 KB.
+- Photos are stored in the database and served from `/photo/<id>`; phones cache them, so they load once.
+- Replacing or removing a photo deletes the old one (photos are not history).
+- Photos show on the website and the table QR menu. Staff screens stay without photos (faster).
+  Dishes without a photo show a food icon chosen from the dish name.
 
 ## Stock
 
@@ -133,10 +179,11 @@ The token stays on the **Tokens** board until marked **Collected** (KOT `SERVED`
 ## Website
 
 - `/` is public. Menu, prices and sold-out marks are read live from the database.
-- WhatsApp takeaway orders are **not** stored in the system: they arrive as a WhatsApp message and staff enter them as a takeaway.
+- Takeaway orders from the website go through the customer order flow above (no WhatsApp ordering).
 - An outlet appears on the website only if *Show on the website* is on (Manage → Outlet).
 
 ## Screen refresh
 
 There is no live push connection; screens re-check the server: kitchen every 3 s, orders and tokens every 4 s,
-table QR page every 5 s, stall new-order screen every 15 s. Only while the screen is visible.
+table QR page and order tracking page every 5 s, stall new-order screen every 10 s (4 s while requests are waiting).
+Only while the screen is visible.

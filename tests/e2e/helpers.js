@@ -66,7 +66,8 @@ async function run(fn) {
   try {
     await fn(browser);
   } catch (e) {
-    errors.push("CRASHED: " + e.message.split("\n")[0]);
+    // first lines say which step failed and what it was waiting for
+    errors.push("CRASHED: " + e.message.split("\n").slice(0, 3).join(" | "));
   }
   await browser.close();
   await db.$disconnect();

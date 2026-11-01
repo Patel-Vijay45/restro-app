@@ -24,8 +24,14 @@ export default function RequestsPanel({ requests }: { requests: PendingRequest[]
     });
   }
   function close(id: string, status: "DONE" | "REJECTED") {
+    let reason = "";
+    if (status === "REJECTED") {
+      const answer = prompt("Reason for the customer (optional), e.g. 'Biryani finished for today'");
+      if (answer === null) return;
+      reason = answer;
+    }
     start(async () => {
-      await closeRequest(id, status);
+      await closeRequest(id, status, reason);
       router.refresh();
     });
   }
@@ -41,11 +47,26 @@ export default function RequestsPanel({ requests }: { requests: PendingRequest[]
             return (
               <div key={r.id} className="card border-gold bg-gold-soft/40 p-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="font-semibold">
-                    {ICON[r.kind]} {r.tableName} {TITLE[r.kind]}
-                  </span>
+                  {r.customer ? (
+                    <span className="font-semibold">
+                      🌐 Online order{r.tokenNo ? ` · adds to token #${r.tokenNo}` : ""}
+                    </span>
+                  ) : (
+                    <span className="font-semibold">
+                      {ICON[r.kind]} {r.tableName} {TITLE[r.kind]}
+                    </span>
+                  )}
                   <span className="text-xs text-muted">{mins} min</span>
                 </div>
+                {r.customer && (
+                  <div className="mb-2 text-sm">
+                    <b>{r.customer.name}</b> ·{" "}
+                    <a href={`tel:+91${r.customer.phone}`} className="underline">
+                      {r.customer.phone}
+                    </a>
+                    {r.customer.pickupTime && <> · Pickup: {r.customer.pickupTime}</>}
+                  </div>
+                )}
                 {r.kind === "ORDER" && (
                   <ul className="mb-3 space-y-1 rounded-xl bg-white p-2 text-sm">
                     {r.items.map((i, n) => (
@@ -68,7 +89,7 @@ export default function RequestsPanel({ requests }: { requests: PendingRequest[]
                         Reject
                       </button>
                       <button disabled={pending} onClick={() => approve(r.id)} className="btn-gold flex-[2] text-sm">
-                        Send to kitchen ✓
+                        {r.customer ? "Accept ✓" : "Send to kitchen ✓"}
                       </button>
                     </>
                   ) : (

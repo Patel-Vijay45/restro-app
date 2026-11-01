@@ -1,23 +1,32 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { placeOnlineOrder } from "@/app/actions/customer";
 import type { MenuCategory, MenuEntry } from "@/lib/menu";
 import { rupees } from "@/lib/money";
-import { whatsappLink } from "@/lib/contact";
+import { rememberOrder } from "@/lib/myOrders";
+import DishThumb from "@/components/DishThumb";
 import VegMark from "@/components/VegMark";
 
-type Outlet = { id: string; name: string; phone: string; menu: MenuCategory[] };
+type Outlet = { id: string; name: string; menu: MenuCategory[] };
 type Filter = "all" | "veg" | "nonveg";
 
-/** Public menu with a WhatsApp takeaway order. Nothing is saved: the order arrives as a WhatsApp message. */
+const PICKUP_CHOICES = ["As soon as possible", "In 30 minutes", "In 1 hour"];
+
+/** Public menu with photos and takeaway ordering. Payment happens at the counter when collecting. */
 export default function WebsiteMenu({ outlets }: { outlets: Outlet[] }) {
+  const router = useRouter();
   const [outletId, setOutletId] = useState(outlets[0]?.id ?? "");
   const [filter, setFilter] = useState<Filter>("all");
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<Record<string, number>>({});
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [pickup, setPickup] = useState("");
+  const [phone, setPhone] = useState("");
+  const [pickup, setPickup] = useState(PICKUP_CHOICES[0]);
+  const [error, setError] = useState("");
+  const [pending, start] = useTransition();
 
   const outlet = outlets.find((o) => o.id === outletId) ?? outlets[0];
   const items = useMemo(() => new Map((outlet?.menu ?? []).flatMap((c) => c.items).map((i) => [i.id, i])), [outlet]);
@@ -39,6 +48,7 @@ export default function WebsiteMenu({ outlets }: { outlets: Outlet[] }) {
     .filter((l): l is { item: MenuEntry; qty: number } => !!l.item && l.qty > 0);
   const count = lines.reduce((s, l) => s + l.qty, 0);
   const total = lines.reduce((s, l) => s + l.item.price * l.qty, 0);
+  const short = (n: string) => n.replace(/^DFC\s+/, "");
 
   function change(id: string, d: number) {
     setCart((c) => {
@@ -55,27 +65,29 @@ export default function WebsiteMenu({ outlets }: { outlets: Outlet[] }) {
     setOpen(false);
   }
 
-  const details = [name.trim() && `Name: ${name.trim()}`, pickup.trim() && `Pickup time: ${pickup.trim()}`].filter(Boolean);
-  const message = [
-    `Hello ${outlet.name}! I'd like to order for takeaway:`,
-    "",
-    ...lines.map((l) => `${l.qty} × ${l.item.name} (${rupees(l.item.price * l.qty)})`),
-    "",
-    `Total: ${rupees(total)}`,
-    ...details,
-  ].join("\n");
+  function placeOrder() {
+    setError("");
+    start(async () => {
+      const r = await placeOnlineOrder({
+        outletId: outlet.id,
+        cart: lines.map((l) => ({ menuItemId: l.item.id, qty: l.qty, note: "" })),
+        name,
+        phone,
+        pickupTime: pickup,
+      });
+      if (!r.ok) return setError(r.error);
+      rememberOrder(r.trackToken, outlet.name);
+      router.push(`/track/${r.trackToken}`);
+    });
+  }
 
   return (
     <div className="pb-20">
       {outlets.length > 1 && (
         <div className="mb-3 grid grid-cols-2 gap-1 rounded-xl bg-line/60 p-1 text-sm font-semibold sm:max-w-md">
           {outlets.map((o) => (
-            <button
-              key={o.id}
-              onClick={() => switchOutlet(o.id)}
-              className={`rounded-lg py-2 ${o.id === outlet.id ? "bg-white shadow-sm" : "text-muted"}`}
-            >
-              {o.name.replace(/^DFC\s+/, "")}
+            <button key={o.id} onClick={() => switchOutlet(o.id)} className={`rounded-lg py-2 ${o.id === outlet.id ? "bg-white shadow-sm" : "text-muted"}`}>
+              {short(o.name)}
             </button>
           ))}
         </div>
@@ -118,31 +130,34 @@ export default function WebsiteMenu({ outlets }: { outlets: Outlet[] }) {
             <div className="card divide-y divide-line">
               {c.items.map((i) => (
                 <div key={i.id} className={`flex items-center gap-3 p-3 ${i.isAvailable ? "" : "opacity-50"}`}>
-                  <VegMark veg={i.isVeg} />
+                  <DishThumb photoId={i.photoId} name={i.name} category={c.name} size={72} />
                   <div className="min-w-0 flex-1">
-                    <div className="font-medium leading-tight">{i.name}</div>
+                    <div className="flex items-start gap-1.5">
+                      <span className="pt-1">
+                        <VegMark veg={i.isVeg} size={12} />
+                      </span>
+                      <span className="font-medium leading-tight">{i.name}</span>
+                    </div>
                     {i.description && <div className="text-xs text-muted">{i.description}</div>}
-                    <div className="text-sm font-semibold text-ink/80">{rupees(i.price)}</div>
+                    <div className="mt-0.5 text-sm font-semibold text-ink/80">{rupees(i.price)}</div>
                   </div>
                   {!i.isAvailable ? (
                     <span className="text-xs font-semibold uppercase text-nonveg">Sold out</span>
-                  ) : outlet.phone ? (
-                    cart[i.id] ? (
-                      <div className="flex items-center overflow-hidden rounded-xl bg-ink text-white">
-                        <button onClick={() => change(i.id, -1)} className="h-9 w-9 text-lg" aria-label={`Less ${i.name}`}>
-                          −
-                        </button>
-                        <span className="w-6 text-center font-semibold">{cart[i.id]}</span>
-                        <button onClick={() => change(i.id, 1)} className="h-9 w-9 text-lg" aria-label={`More ${i.name}`}>
-                          +
-                        </button>
-                      </div>
-                    ) : (
-                      <button onClick={() => change(i.id, 1)} className="btn-outline min-h-9 px-4 text-sm text-veg" aria-label={`Add ${i.name}`}>
-                        ADD
+                  ) : cart[i.id] ? (
+                    <div className="flex items-center overflow-hidden rounded-xl bg-ink text-white">
+                      <button onClick={() => change(i.id, -1)} className="h-9 w-9 text-lg" aria-label={`Less ${i.name}`}>
+                        −
                       </button>
-                    )
-                  ) : null}
+                      <span className="w-6 text-center font-semibold">{cart[i.id]}</span>
+                      <button onClick={() => change(i.id, 1)} className="h-9 w-9 text-lg" aria-label={`More ${i.name}`}>
+                        +
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => change(i.id, 1)} className="btn-outline min-h-9 px-4 text-sm text-veg" aria-label={`Add ${i.name}`}>
+                      ADD
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -156,7 +171,7 @@ export default function WebsiteMenu({ outlets }: { outlets: Outlet[] }) {
             <span>
               {count} item{count > 1 ? "s" : ""} · {rupees(total)}
             </span>
-            <span>Order on WhatsApp →</span>
+            <span>Order takeaway →</span>
           </button>
         </div>
       )}
@@ -164,13 +179,13 @@ export default function WebsiteMenu({ outlets }: { outlets: Outlet[] }) {
       {open && (
         <div className="fixed inset-0 z-40 flex items-end bg-black/40 sm:items-center" onClick={() => setOpen(false)}>
           <div
-            className="mx-auto max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-paper p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:rounded-3xl"
+            className="mx-auto max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-paper p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:rounded-3xl"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-label="Your takeaway order"
           >
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-lg font-bold">Takeaway from {outlet.name.replace(/^DFC\s+/, "")}</h3>
+              <h3 className="text-lg font-bold">Takeaway from {short(outlet.name)}</h3>
               <button onClick={() => setOpen(false)} className="text-sm text-muted">
                 Add more
               </button>
@@ -190,20 +205,31 @@ export default function WebsiteMenu({ outlets }: { outlets: Outlet[] }) {
                 <span>{rupees(total)}</span>
               </div>
             </div>
-            <div className="mb-3 grid grid-cols-2 gap-2">
+            <div className="mb-3 space-y-3">
               <label className="block">
                 <span className="label">Your name</span>
-                <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
+                <input className="input" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
               </label>
               <label className="block">
-                <span className="label">Pickup time</span>
-                <input className="input" placeholder="e.g. 8:30 PM" value={pickup} onChange={(e) => setPickup(e.target.value)} />
+                <span className="label">Mobile number</span>
+                <input className="input" inputMode="tel" autoComplete="tel" placeholder="10-digit number" value={phone} onChange={(e) => setPhone(e.target.value)} />
+              </label>
+              <label className="block">
+                <span className="label">Pickup</span>
+                <select className="input" value={pickup} onChange={(e) => setPickup(e.target.value)}>
+                  {PICKUP_CHOICES.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
               </label>
             </div>
-            <a href={whatsappLink(outlet.phone, message)} target="_blank" rel="noopener" className="btn w-full bg-[#1f9d55] text-base text-white">
-              Send order on WhatsApp
-            </a>
-            <p className="mt-2 text-center text-xs text-muted">We&apos;ll reply to confirm. Pay at the counter when you collect.</p>
+            {error && <p className="mb-2 rounded-xl bg-billed p-3 text-sm text-nonveg">{error}</p>}
+            <button onClick={placeOrder} disabled={pending} className="btn-gold w-full text-base">
+              {pending ? "Placing order…" : `Place order · ${rupees(total)}`}
+            </button>
+            <p className="mt-2 text-center text-xs text-muted">
+              The restaurant confirms your order. You can follow it live and add more items. Pay at the counter when you collect.
+            </p>
           </div>
         </div>
       )}

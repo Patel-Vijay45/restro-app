@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { getMenu } from "@/lib/menu";
-import { upiLink } from "@/lib/billText";
+import { customerStatus, orderInclude } from "@/lib/customerStatus";
 import AutoRefresh from "@/components/AutoRefresh";
-import CustomerView, { type CustomerOrder } from "./CustomerView";
+import CustomerView from "./CustomerView";
 
 export const dynamic = "force-dynamic";
 
@@ -24,34 +24,18 @@ export default async function TablePage({ params }: { params: Promise<{ token: s
     );
   }
 
-  const [menu, order, pending] = await Promise.all([
+  const [menu, order] = await Promise.all([
     getMenu(table.outletId),
-    db.order.findFirst({
-      where: { tableId: table.id, status: { in: ["OPEN", "BILLED"] } },
-      include: { kots: { orderBy: { createdAt: "asc" }, include: { items: { where: { cancelled: false } } } }, payments: true },
-    }),
-    db.tableRequest.findMany({ where: { tableId: table.id, status: "PENDING" }, orderBy: { createdAt: "asc" } }),
+    db.order.findFirst({ where: { tableId: table.id, status: { in: ["OPEN", "BILLED"] } }, include: orderInclude }),
   ]);
-
-  // Names for dishes in order requests that the waiter hasn't confirmed yet.
-  const names = new Map(menu.flatMap((c) => c.items).map((i) => [i.id, i]));
-  const waiting = pending
-    .filter((r) => r.kind === "ORDER")
-    .flatMap((r) => ((r.items ?? []) as { menuItemId: string; qty: number }[]).map((l) => ({ ...l, name: names.get(l.menuItemId)?.name ?? "Dish" })));
-
-  let customerOrder: CustomerOrder | null = null;
-  if (order) {
-    const items = order.kots.flatMap((k) => k.items.map((i) => ({ id: i.id, name: i.name, qty: i.qty, isVeg: i.isVeg, price: i.price, status: k.status })));
-    const paid = order.payments.reduce((s, p) => s + p.amount, 0);
-    const billed = order.status === "BILLED";
-    customerOrder = {
-      items,
-      running: items.reduce((s, i) => s + i.price * i.qty, 0),
-      billTotal: billed ? order.total : null,
-      due: billed ? order.total - paid : null,
-      upi: billed && table.outlet.upiId && order.total - paid > 0 ? upiLink(table.outlet.upiId, table.outlet.name, order.total - paid, `Bill ${order.billNo}`) : null,
-    };
-  }
+  // Requests of the people at the table now: since their order started, at most the last hour.
+  const since = new Date(Math.max(order?.createdAt.getTime() ?? 0, Date.now() - 60 * 60000));
+  const requests = await db.customerRequest.findMany({
+    where: { tableId: table.id, OR: [{ status: "PENDING" }, { kind: "ORDER", status: "REJECTED", createdAt: { gte: since } }] },
+    orderBy: { createdAt: "asc" },
+  });
+  const status = await customerStatus(order, requests, false);
+  const pending = requests.filter((r) => r.status === "PENDING");
 
   return (
     <>
@@ -62,8 +46,8 @@ export default async function TablePage({ params }: { params: Promise<{ token: s
         tableName={table.name}
         phone={table.outlet.phone}
         menu={menu}
-        order={customerOrder}
-        waiting={waiting}
+        status={status}
+        hasOrder={!!order}
         calling={pending.some((r) => r.kind === "CALL_WAITER")}
         billAsked={pending.some((r) => r.kind === "BILL")}
       />

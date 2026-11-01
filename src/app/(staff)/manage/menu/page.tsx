@@ -5,6 +5,7 @@ import { rupees } from "@/lib/money";
 import { saveCategory } from "@/app/actions/manage";
 import Notice from "@/components/Notice";
 import VegMark from "@/components/VegMark";
+import DishThumb from "@/components/DishThumb";
 import AvailableSwitch from "./AvailableSwitch";
 
 export default async function MenuAdminPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
@@ -29,7 +30,7 @@ export default async function MenuAdminPage({ searchParams }: { searchParams: Pr
       <Notice error={error} />
       <div className="mb-3 flex items-center justify-between">
         <p className="text-sm text-muted">
-          Turn a switch off when a dish runs out today.{soldOut > 0 && <b className="text-nonveg"> {soldOut} sold out.</b>}
+          Tap a dish to change it or add a photo. Turn a switch off when it runs out today.{soldOut > 0 && <b className="text-nonveg"> {soldOut} sold out.</b>}
         </p>
         <Link href="/manage/menu/new" className="btn-primary min-h-9 shrink-0 text-sm">
           + Dish
@@ -52,6 +53,7 @@ export default async function MenuAdminPage({ searchParams }: { searchParams: Pr
             {c.items.length === 0 && <p className="p-3 text-sm text-muted">No dishes yet.</p>}
             {c.items.map((i) => (
               <div key={i.id} className="flex items-center gap-3 p-3">
+                <DishThumb photoId={i.photoId} name={i.name} category={c.name} size={40} />
                 <VegMark veg={i.isVeg} />
                 <Link href={`/manage/menu/${i.id}`} className="min-w-0 flex-1">
                   <div className={`font-medium leading-tight ${i.isAvailable ? "" : "text-muted"}`}>{i.name}</div>

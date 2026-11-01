@@ -21,7 +21,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   const outlets = await db.outlet.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, name: true } });
   const outlet = outlets.find((o) => o.id === me.outletId);
   const requestIds = CAN_ORDER.includes(me.role)
-    ? (await db.tableRequest.findMany({ where: { outletId: me.outletId, status: "PENDING" }, select: { id: true } })).map((r) => r.id)
+    ? (await db.customerRequest.findMany({ where: { outletId: me.outletId, status: "PENDING" }, select: { id: true } })).map((r) => r.id)
     : [];
 
   const links: NavLink[] = [];

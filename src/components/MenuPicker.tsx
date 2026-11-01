@@ -3,17 +3,19 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { counterCheckout, sendToKitchen, type CartLine } from "@/app/actions/orders";
-import { customerOrder } from "@/app/actions/customer";
+import { addToOnlineOrder, customerOrder } from "@/app/actions/customer";
 import type { MenuCategory, MenuEntry } from "@/lib/menu";
 import { rupees } from "@/lib/money";
 import VegMark from "./VegMark";
+import DishThumb from "./DishThumb";
 
 export type PickerTarget =
   | { kind: "order"; orderId: string }
   | { kind: "table"; tableId: string }
   | { kind: "takeaway" }
   | { kind: "counter" }
-  | { kind: "customer"; token: string };
+  | { kind: "customer"; token: string }
+  | { kind: "online"; trackToken: string };
 
 type Filter = "all" | "veg" | "nonveg";
 
@@ -37,6 +39,7 @@ export default function MenuPicker({
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
 
+  const customerFacing = target.kind === "customer" || target.kind === "online";
   const allItems = useMemo(() => new Map(menu.flatMap((c) => c.items).map((i) => [i.id, i])), [menu]);
 
   const visible = useMemo(() => {
@@ -73,8 +76,8 @@ export default function MenuPicker({
   function submit() {
     setError("");
     start(async () => {
-      if (target.kind === "customer") {
-        const r = await customerOrder(target.token, lines);
+      if (target.kind === "customer" || target.kind === "online") {
+        const r = target.kind === "customer" ? await customerOrder(target.token, lines) : await addToOnlineOrder(target.trackToken, lines);
         if (!r.ok) return setError(r.error);
         setCart({});
         setShowCart(false);
@@ -104,7 +107,9 @@ export default function MenuPicker({
       ? `Charge ${rupees(total)}`
       : target.kind === "customer"
         ? `Send order to waiter · ${rupees(total)}`
-        : "Send to kitchen";
+        : target.kind === "online"
+          ? `Add to my order · ${rupees(total)}`
+          : "Send to kitchen";
 
   return (
     <div className="pb-24">
@@ -153,7 +158,13 @@ export default function MenuPicker({
           <h2 className="mb-2 mt-3 text-sm font-bold uppercase tracking-wide text-muted">{c.name}</h2>
           <div className="card divide-y divide-line">
             {c.items.map((item) => (
-              <ItemRow key={item.id} item={item} qty={cart[item.id]?.qty ?? 0} onChange={(d) => change(item.id, d)} />
+              <ItemRow
+                key={item.id}
+                item={item}
+                photo={customerFacing}
+                qty={cart[item.id]?.qty ?? 0}
+                onChange={(d) => change(item.id, d)}
+              />
             ))}
           </div>
         </section>
@@ -221,6 +232,9 @@ export default function MenuPicker({
             {target.kind === "customer" && (
               <p className="mb-3 text-sm text-muted">Your waiter will confirm the order before it goes to the kitchen.</p>
             )}
+            {target.kind === "online" && (
+              <p className="mb-3 text-sm text-muted">The restaurant will confirm these items. They go on the same bill.</p>
+            )}
             {error && <p className="mb-2 text-sm text-nonveg">{error}</p>}
             <button onClick={submit} disabled={pending || count === 0} className="btn-gold w-full text-base">
               {pending ? "Sending…" : submitLabel}
@@ -232,12 +246,24 @@ export default function MenuPicker({
   );
 }
 
-function ItemRow({ item, qty, onChange }: { item: MenuEntry; qty: number; onChange: (delta: number) => void }) {
+function ItemRow({
+  item,
+  qty,
+  photo,
+  onChange,
+}: {
+  item: MenuEntry;
+  qty: number;
+  photo?: boolean;
+  onChange: (delta: number) => void;
+}) {
   return (
     <div className={`flex items-center gap-3 p-3 ${item.isAvailable ? "" : "opacity-50"}`}>
+      {photo && <DishThumb photoId={item.photoId} name={item.name} category={item.category} size={64} />}
       <VegMark veg={item.isVeg} />
       <div className="min-w-0 flex-1">
         <div className="font-medium leading-tight">{item.name}</div>
+        {photo && item.description && <div className="text-xs text-muted">{item.description}</div>}
         <div className="text-sm text-muted">{rupees(item.price)}</div>
       </div>
       {!item.isAvailable ? (

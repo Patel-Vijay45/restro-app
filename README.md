@@ -25,11 +25,12 @@ Everything works from a phone. A PC or tablet is optional.
 | Waiter | **Order** | Sees *READY* on the table, marks it served. Can add more items any time. |
 | Cashier / owner | **Bill** | Generates the bill, discount (% or ₹), takes Cash / UPI (QR shown on screen) / Card, split payments, shows change to give back. Print or WhatsApp the bill. |
 | Stall | **Orders** (counter mode) | Tap dishes → *Charge* → take payment → token number. **Tokens** tab: *Food ready: call #12* → *Collected*. |
-| Public | **Website** (`/`) | Logo, Call / WhatsApp / Map buttons, opening hours, **live menu** for the restaurant and the stall (prices and *sold out* come straight from the system), veg filter, search, **takeaway order on WhatsApp** (customer picks dishes, the order arrives on the restaurant's WhatsApp as a message), both outlets with address and hours, Google map, set up for Google search. |
-| Customer | **Table QR** (scan, no app, no login) | Menu with veg filter and sold-out dishes, picks dishes and sends them **to the waiter for confirmation**, sees live status (received → cooking → coming → served), *Call waiter*, *Ask for bill*, *Pay by UPI* button. |
-| Waiter | **Orders → Customer requests** | Phone beeps and vibrates. Order requests: *Send to kitchen* or *Reject*. Calls and bill requests: *Done* / *Open bill*. The table tile glows with 🛒 🔔 🧾. |
+| Public | **Website** (`/`) | Logo, Call / Map buttons, opening hours, **live menu with dish photos** for the restaurant and the stall (prices and *sold out* come straight from the system), veg filter, search, **takeaway ordering**: name + mobile, pay at the counter on pickup, **live tracking page** (token number, Accepted → Cooking → Ready for pickup → Collected → Bill → Paid), add more items, Google map, set up for Google search. |
+| Customer | **Table QR** (scan, no app, no login) | Menu with photos, veg filter and sold-out dishes; sends dishes **to the waiter for confirmation**; progress bar Sent → Accepted → Cooking → Ready → Served → Bill → Paid with each round's status; **add more items** to the same bill any time; *Call waiter*, *Ask for bill*, *Pay by UPI*. |
+| Staff | **Orders → Customer requests** | Phone beeps and vibrates. Table and website orders: *Accept / Send to kitchen* or *Reject* with a reason the customer sees. Calls and bill requests: *Done* / *Open bill*. The table tile glows with 🛒 🔔 🧾; website orders show 🌐 with name, mobile and pickup time. |
 | Owner / manager | **Manage** | Menu (add/edit dishes, *sold out today* switch), tables, staff and PINs, outlet details (UPI ID, bill footer, printer paper size, GST switch). |
 | Owner / manager | **Stock** | Ingredients per outlet with live stock (kg / L / pcs) and *running low* list (red badge on the Stock tab). **Purchase** (quantity, amount paid, supplier: updates the average cost), **Wastage** (with reason), **Count** (enter what is really there; the difference is saved). History of every change per ingredient. |
+| Owner / manager | **Manage → Menu → dish** | **Dish photo** from the phone camera or gallery (made small automatically). |
 | Owner / manager | **Manage → Menu → dish → Recipe** | How much of each ingredient one portion uses (g / ml / pcs). Shows cost to make, selling price and **food cost %**. |
 | Owner / manager | **Sales** | Day's sales, bills, average bill, cash vs UPI vs card, food cost of paid bills, purchases, wastage, stock missing in counts, top dishes, **removed items and cancelled orders with reasons**, both outlets combined. |
 
@@ -96,7 +97,7 @@ so people searching on Google see the menu.
 |---|---|---|
 | Server (app + database + HTTPS + daily backups, both outlets) | **≈ ₹400–600 / month** | One 1 GB RAM Linux server in India. See [deploy/SERVER-SETUP.md](deploy/SERVER-SETUP.md). |
 | Web address | ≈ ₹500–900 / year (optional) | A `.in` domain looks better on table QR codes. Free alternative: `<ip>.sslip.io`. |
-| Bills on WhatsApp, UPI QR, customer QR menu | ₹0 | Uses WhatsApp links and UPI links: no SMS charges, no payment-gateway fees. |
+| Bills on WhatsApp, UPI QR, customer QR menu, website orders, dish photos | ₹0 | Uses WhatsApp links and UPI links (no SMS charges, no payment-gateway fees); photos are stored in the same database. |
 | Software licences | ₹0 | All open source. |
 | One-time | ≈ ₹20 per table (print + laminate) or ≈ ₹100–150 (acrylic stand) | QR sheet: *Manage → Tables → Print QR codes* (6 per A4 page). |
 
@@ -133,7 +134,9 @@ src/app/(staff)/kitchen    kitchen screen
 src/app/(staff)/manage     menu, tables, staff, outlet settings
 src/app/(staff)/stock      ingredients, purchase, wastage, stock count
 src/app/(staff)/reports    sales report
-src/app/page.tsx           public website (src/components/site: menu with WhatsApp order)
+src/app/page.tsx           public website (src/components/site: menu with takeaway ordering)
+src/app/track/[token]      customer tracking page for a website order (public)
+src/app/photo/[id]         dish photos
 src/app/t/[token]          customer page behind each table QR (public)
 src/app/print              thermal receipt, table QR sheet
 src/app/actions            all changes (orders, manage, login)
@@ -150,6 +153,7 @@ docs                       user guide, business rules, developer guide
 - [x] **Phase 3: table QR:** customer scans → menu, order request (waiter confirms), live status, call waiter, ask for bill, pay by UPI
 - [x] Low-cost hosting: Docker setup for one small server (app + database + HTTPS + backups)
 - [x] **Phase 4: inventory:** ingredients, recipes per dish with food cost, auto stock deduction, purchases, wastage, stock count, low-stock alerts (per outlet)
-- [x] **Phase 5: public website:** live menu, WhatsApp takeaway, call / map, Google search basics
+- [x] **Phase 5: public website:** live menu, call / map, Google search basics
+- [x] Customer ordering: website takeaway with tracking, one status flow for table and website, add more items, dish photos
 - [ ] Logo refresh (later)
 - [ ] Later: offline mode for weak internet, table move/merge, direct Bluetooth printing

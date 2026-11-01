@@ -48,14 +48,19 @@ Screens update by themselves every few seconds. No need to reload.
 
 **Food ready:** the table tile shows **READY**. Serve it, then open the table → **Mark served ✓**.
 
-**Customer requests from the table QR** (the phone beeps and vibrates, the table tile glows):
-- 🛒 **wants to order** → check the dishes with the customer → **Send to kitchen ✓** or **Reject**.
+**Customer requests** at the top of Orders (the phone beeps and vibrates, the table tile glows):
+- 🛒 **T5 wants to order** (table QR, first order or *add more*) → check with the customer → **Send to kitchen ✓**, or **Reject**
+  (type a short reason, e.g. "Biryani finished for today". The customer sees it).
+- 🌐 **Online order** (website takeaway): name, mobile, pickup time and dishes → **Accept ✓** (it gets a token number and goes
+  to the kitchen) or **Reject** with a reason. "adds to token #12" means the customer added items to an order you already accepted.
 - 🔔 **is calling you** → go to the table → **Done ✓**.
 - 🧾 **asked for the bill** → **Open bill** → **Generate bill**.
 
 **Bill:** open the table → **Bill →** → **Generate bill**. The cashier takes the payment.
 
 **Takeaway:** Orders → **+ New takeaway** → dishes → customer name → Send to kitchen. It gets a token number.
+Website orders appear in the same **Takeaway** list with 🌐, the phone number and the pickup time. When the customer collects:
+open it → **Mark served ✓** → **Bill →** → take the payment.
 
 Waiters cannot remove an item once it went to the kitchen. Ask the manager.
 
@@ -97,6 +102,10 @@ Counter service: customers pay first, then get a token number.
 2. Take the payment (Cash / UPI / Card) → **Received**. The bill shows the **token number**. Print or tell it to the customer.
 3. **Tokens** tab: when the food is ready tap **Food ready: call #12**, call out the number, then **Collected ✓** when they take it.
 
+**Website orders at the stall** (🌐 at the top of the screen): **Accept ✓** or **Reject**. They are not paid yet: on the Tokens
+board they show *Unpaid*. After **Collected ✓** tap **Collected · take payment** → Generate bill → take the payment.
+The token leaves the board only when it is collected and paid.
+
 Token and KOT numbers start from 1 every day.
 
 ---
@@ -106,6 +115,9 @@ Token and KOT numbers start from 1 every day.
 ### Menu (Manage → Menu)
 - **Sold out today:** turn the switch off next to the dish. It shows as *Sold out* and can't be ordered on staff phones, the table QR or the website. It stays off until you turn it back on.
 - **Change a price or name:** tap the dish → edit → Save. Old bills keep the old price.
+- **Dish photo:** tap the dish → **📷 Add photo** → take a photo or pick one from the gallery. It is made smaller automatically
+  and shows on the website and the table QR menu. **Change photo** / **Remove** on the same screen. Tips: daylight, plate filling
+  the frame, plain background.
 - **New dish:** **+ Dish**. **New category:** box at the bottom.
 - **Remove a dish:** open it → *Remove from menu* (old bills still show it).
 - **Recipe and cost** (inside a dish): how much of each ingredient **one portion** uses. Shows cost to make and food cost %
@@ -151,16 +163,21 @@ open orders, food cost of paid bills, purchases, wastage, value missing in stock
 
 ## Customers
 
-**At the table (QR code)**: scan with the phone camera, no app needed.
-- **Menu**: tap ADD → **Send order to waiter**. The waiter confirms it before it goes to the kitchen.
-- **My order**: what was ordered and its status (received → cooking → coming to you → served), and the total.
+Customers see the same steps everywhere:
+**Sent → Accepted → Cooking → Ready → Served (Collected for takeaway) → Bill → Paid.**
+
+**At the table (QR code):** scan with the phone camera, no app needed.
+- **Menu** (with photos): tap ADD → **Send order to waiter**. The waiter confirms it before it goes to the kitchen.
+- **My order**: the progress bar, each round of dishes with its status, and the total.
+- **+ Add more items** any time before paying: the new dishes go on the same bill.
 - **🔔 Call waiter**, **🧾 Ask for bill**, and after the bill: **Pay by UPI** (then show the success screen to the cashier).
 
-**Website** (`<your address>`): menu with prices, Call / WhatsApp / Map buttons, opening hours.
-**Takeaway on WhatsApp**: pick dishes → *Order on WhatsApp* → the message opens in WhatsApp, ready to send to the restaurant.
-Staff then enter it as a takeaway order and reply with the time.
-
----
+**On the website** (`<your address>`): menu with photos and prices, Call / Map buttons, opening hours.
+- Pick dishes → **Order takeaway** → name, mobile number, pickup time → **Place order**. No payment now.
+- A tracking page opens: "Waiting for the restaurant" → **token number** once accepted → Cooking → **Ready for pickup**.
+  It updates by itself. The website shows a "Your order · Track it" bar on that phone for a day.
+- **+ Add more items** from the tracking page until paying.
+- **Pay at the counter** when collecting (cash, UPI or card), or with **Pay by UPI** once the bill is ready.
 
 ## Daily routine
 
@@ -191,5 +208,7 @@ Staff then enter it as a takeaway order and reply with the time.
 | Wrong dish sent to kitchen | Manager removes it with a reason (before cooking: stock comes back). |
 | Customer says they paid by UPI | Check your UPI app / soundbox first, then tap Received UPI. |
 | Print button doesn't print from the phone | Install your printer's app or **RawBT** from the Play Store, or use WhatsApp bill. |
+| Customer says "my order shows Not accepted" | Someone rejected it (the reason is on their page). Take the order yourself or ask them to order again. |
+| Website order waiting long | Check Orders → Customer requests at the right outlet (owner: switch outlet at the top). |
 | Table QR says "not active" | The table was hidden or got a new QR. Print the current one from Manage → Tables. |
 | Stock number looks wrong | Open the ingredient's history. Fix with a Count; check the dish recipes. |

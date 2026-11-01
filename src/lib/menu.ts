@@ -1,6 +1,6 @@
 import { db } from "./db";
 
-export type MenuEntry = { id: string; name: string; price: number; isVeg: boolean; isAvailable: boolean; description?: string };
+export type MenuEntry = { id: string; name: string; price: number; isVeg: boolean; isAvailable: boolean; description?: string; photoId?: string | null; category?: string };
 export type MenuCategory = { id: string; name: string; items: MenuEntry[] };
 
 export async function getMenu(outletId: string): Promise<MenuCategory[]> {
@@ -11,9 +11,11 @@ export async function getMenu(outletId: string): Promise<MenuCategory[]> {
       items: {
         where: { active: true },
         orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-        select: { id: true, name: true, price: true, isVeg: true, isAvailable: true, description: true },
+        select: { id: true, name: true, price: true, isVeg: true, isAvailable: true, description: true, photoId: true },
       },
     },
   });
-  return categories.filter((c) => c.items.length > 0).map((c) => ({ id: c.id, name: c.name, items: c.items }));
+  return categories
+    .filter((c) => c.items.length > 0)
+    .map((c) => ({ id: c.id, name: c.name, items: c.items.map((i) => ({ ...i, category: c.name })) }));
 }

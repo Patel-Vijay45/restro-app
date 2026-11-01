@@ -49,6 +49,15 @@ export default async function OrderPage({ params }: { params: Promise<{ orderId:
             Opened {timeText(order.createdAt)} by {order.createdBy.name}
             {order.guests ? ` · ${order.guests} guests` : ""}
           </p>
+          {order.customerPhone && (
+            <p className="text-sm">
+              {order.channel === "ONLINE" && "🌐 Online · "}
+              <a href={`tel:+91${order.customerPhone}`} className="underline">
+                {order.customerPhone}
+              </a>
+              {order.pickupTime && ` · pickup ${order.pickupTime}`}
+            </p>
+          )}
         </div>
         <StatusChip status={order.status} />
       </div>

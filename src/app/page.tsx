@@ -4,12 +4,13 @@ import { getMenu } from "@/lib/menu";
 import { baseUrl } from "@/lib/baseUrl";
 import { prettyPhone, telLink, whatsappLink } from "@/lib/contact";
 import WebsiteMenu from "@/components/site/WebsiteMenu";
+import MyOrderBanner from "@/components/site/MyOrderBanner";
 
 // Reads the live menu on every visit, so prices and sold-out dishes are always current.
 export const dynamic = "force-dynamic";
 
 const DESCRIPTION =
-  "DFC Family Restaurant, Gajendragad: veg & non-veg family dining. Biryani, starters, curries and more. See the menu, call, or order takeaway on WhatsApp.";
+  "DFC Family Restaurant, Gajendragad: veg & non-veg family dining. Biryani, starters, curries and more. See the menu, call, or order takeaway online.";
 
 export async function generateMetadata(): Promise<Metadata> {
   const base = await baseUrl();
@@ -77,6 +78,8 @@ export default async function Website() {
         </div>
       </header>
 
+      <MyOrderBanner />
+
       <section id="top" className="relative overflow-hidden bg-ink text-white">
         <div
           className="pointer-events-none absolute inset-0 opacity-60"
@@ -105,11 +108,9 @@ export default async function Website() {
                 📞 Call
               </a>
             )}
-            {main?.phone && (
-              <a href={whatsappLink(main.phone, "Hello DFC Family Restaurant!")} target="_blank" rel="noopener" className="btn border border-white/25 text-white">
-                WhatsApp
-              </a>
-            )}
+            <a href="#menu" className="btn border border-white/25 text-white">
+              🛍️ Order
+            </a>
             {main?.mapsUrl && (
               <a href={main.mapsUrl} target="_blank" rel="noopener" className="btn border border-white/25 text-white" aria-label="Directions on Google Maps">
                 📍 Map
@@ -125,14 +126,14 @@ export default async function Website() {
       <section className="mx-auto grid max-w-5xl gap-3 px-4 py-8 sm:grid-cols-3">
         <Feature icon="🍗" title="Biryani, starters & curries" text="Chicken, mutton, fish, paneer and more, cooked to order." />
         <Feature icon="🟩" title="Clear veg / non-veg marks" text="Every dish shows the green or red mark, so families can choose with ease." />
-        <Feature icon="🛍️" title="Takeaway on WhatsApp" text="Pick dishes below and send the order to us on WhatsApp. Collect when ready." />
+        <Feature icon="🛍️" title="Order takeaway online" text="Pick dishes below, follow your order live, and pay at the counter when you collect." />
       </section>
 
       <section id="menu" className="mx-auto max-w-5xl scroll-mt-14 px-4 pb-10">
         <h2 className="mb-1 font-serif text-3xl font-bold">Menu</h2>
         <p className="mb-4 text-sm text-muted">Prices in ₹. Dishes marked sold out are not available today.</p>
         <WebsiteMenu
-          outlets={menus.map(({ outlet, menu }) => ({ id: outlet.id, name: outlet.name, phone: outlet.phone, menu }))}
+          outlets={menus.map(({ outlet, menu }) => ({ id: outlet.id, name: outlet.name, menu }))}
         />
       </section>
 

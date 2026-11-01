@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { CAN_MANAGE, requireStaff } from "@/lib/auth";
 import { removeItem, saveItem } from "@/app/actions/manage";
 import Notice from "@/components/Notice";
+import PhotoUpload from "./PhotoUpload";
 
 export default async function EditItemPage({
   params,
@@ -29,6 +30,7 @@ export default async function EditItemPage({
         <h1 className="text-xl font-bold">{isNew ? "New dish" : `Edit ${item!.name}`}</h1>
       </div>
       <Notice error={error} />
+      {item && <PhotoUpload itemId={item.id} name={item.name} photoId={item.photoId} />}
       <form action={saveItem} className="card space-y-4 p-4">
         {item && <input type="hidden" name="id" value={item.id} />}
         <label className="block">

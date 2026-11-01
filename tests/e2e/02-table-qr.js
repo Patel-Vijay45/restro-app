@@ -1,5 +1,5 @@
-// Customer scans the T7 QR → order request → waiter confirms → kitchen → reject → bill request → QR sheet.
-const { BASE, ctx, login, shot, row, tableToken, run } = require("./helpers");
+// Customer scans the T7 QR → order request → waiter confirms → kitchen → reject (reason shown) → add more → bill → QR sheet.
+const { BASE, ctx, login, shot, row, check, tableToken, run } = require("./helpers");
 
 run(async (browser) => {
   // Customer scans T7
@@ -13,7 +13,7 @@ run(async (browser) => {
   await cust.getByRole('button', { name: /Review/ }).click();
   await shot(cust, '02-customer-review');
   await cust.getByRole('button', { name: /Send order to waiter/ }).click();
-  await cust.waitForSelector('text=Waiting for waiter to confirm');
+  await cust.waitForSelector('text=Waiting for confirmation');
   await cust.getByRole('button', { name: /Call waiter/ }).click();
   await cust.waitForSelector('text=Waiter called');
   await shot(cust, '03-customer-waiting');
@@ -36,7 +36,8 @@ run(async (browser) => {
   await kitchen.waitForTimeout(500);
 
   await cust.reload();
-  await cust.waitForSelector('text=Cooking');
+  await cust.locator('span.rounded-full', { hasText: 'Cooking' }).first().waitFor();
+  check('progress shows Cooking', (await cust.locator('[aria-current=step]').innerText()).includes('Cooking'));
   await shot(cust, '05-customer-cooking');
 
   // Customer orders again, waiter rejects
@@ -44,10 +45,25 @@ run(async (browser) => {
   await row(cust, 'Butter Naan').getByRole('button', { name: 'ADD' }).click();
   await cust.getByRole('button', { name: /Review/ }).click();
   await cust.getByRole('button', { name: /Send order to waiter/ }).click();
-  await cust.waitForSelector('text=Waiting for waiter to confirm');
+  await cust.waitForSelector('text=Waiting for confirmation');
   await waiter.waitForSelector('text=T7 wants to order', { timeout: 10000 });
   await waiter.getByRole('button', { name: 'Reject' }).click();
   await waiter.waitForSelector('text=Customer requests', { state: 'detached' });
+  await cust.reload();
+  await cust.waitForSelector('text=Not accepted');
+  check('reject reason shown to customer', await cust.locator('text=Customer changed mind').count() === 1);
+
+  // customer adds more items to the running order; waiter accepts -> second round on the same order
+  await cust.getByRole('button', { name: '+ Add more items' }).click();
+  await row(cust, 'Chapati').getByRole('button', { name: 'ADD' }).click();
+  await cust.getByRole('button', { name: /Review/ }).click();
+  await cust.getByRole('button', { name: /Send order to waiter/ }).click();
+  await waiter.waitForSelector('text=T7 wants to order', { timeout: 10000 });
+  await waiter.getByRole('button', { name: 'Send to kitchen ✓' }).click();
+  await waiter.waitForSelector('text=Customer requests', { state: 'detached' });
+  await cust.reload();
+  await cust.waitForSelector('text=Added items');
+  check('second round accepted', await cust.locator('span.rounded-full', { hasText: 'Accepted' }).count() >= 1);
 
   // Customer asks for bill; waiter generates it
   await cust.reload();
@@ -59,6 +75,7 @@ run(async (browser) => {
   await waiter.waitForSelector('text=/Bill #\\d+/');
   await cust.reload();
   await cust.waitForSelector('text=Bill total');
+  check('progress shows Bill', (await cust.locator('[aria-current=step]').innerText()).includes('Bill'));
   await shot(cust, '06-customer-bill');
 
   // Owner: tables admin + QR sheet

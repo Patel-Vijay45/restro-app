@@ -11,6 +11,7 @@ type Token = {
   tokenNo: number;
   paid: boolean;
   total: number;
+  online: { name: string; phone: string; pickupTime: string } | null;
   items: string[];
   kots: { id: string; status: KotStatus }[];
 };
@@ -42,12 +43,25 @@ export default function TokenBoard({ tokens }: { tokens: Token[] }) {
                 </Link>
               )}
             </div>
+            {t.online && (
+              <p className="mb-2 text-sm">
+                🌐 <b>{t.online.name}</b> ·{" "}
+                <a href={`tel:+91${t.online.phone}`} className="underline">
+                  {t.online.phone}
+                </a>
+                {t.online.pickupTime && <> · {t.online.pickupTime}</>}
+              </p>
+            )}
             <ul className="mb-3 text-sm">
               {t.items.map((line, i) => (
                 <li key={i}>{line}</li>
               ))}
             </ul>
-            {ready ? (
+            {t.kots.length === 0 ? (
+              <Link href={`/orders/${t.orderId}/bill`} className="btn-primary w-full">
+                Collected · take payment {rupees(t.total)} →
+              </Link>
+            ) : ready ? (
               <button disabled={pending} onClick={() => advance(t, "SERVED")} className="btn-primary w-full">
                 Collected ✓
               </button>

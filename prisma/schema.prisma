@@ -30,6 +30,11 @@ enum OrderType {
   COUNTER
 }
 
+enum OrderChannel {
+  STAFF // entered by staff (or a table QR request they accepted)
+  ONLINE // takeaway ordered on the website
+}
+
 enum OrderStatus {
   OPEN // items being ordered / eaten
   BILLED // bill generated, waiting for payment
@@ -103,7 +108,7 @@ model Outlet {
   orders      Order[]
   kots        Kot[]
   counters    Counter[]
-  requests    TableRequest[]
+  requests    CustomerRequest[]
   ingredients Ingredient[]
   stockMoves  StockMove[]
 }
@@ -122,10 +127,10 @@ model Staff {
   lockedUntil DateTime?
   createdAt   DateTime  @default(now())
 
-  requestsHandled TableRequest[]
+  requestsHandled CustomerRequest[]
   stockMoves      StockMove[]
-  ordersCreated   Order[]        @relation("OrderCreatedBy")
-  kotsCreated     Kot[]          @relation("KotCreatedBy")
+  ordersCreated   Order[]           @relation("OrderCreatedBy")
+  kotsCreated     Kot[]             @relation("KotCreatedBy")
   payments        Payment[]
 }
 
@@ -141,7 +146,7 @@ model DiningTable {
   active    Boolean @default(true)
 
   orders   Order[]
-  requests TableRequest[]
+  requests CustomerRequest[]
 
   @@unique([outletId, name])
 }
@@ -171,8 +176,19 @@ model MenuItem {
   active      Boolean  @default(true) // false = removed from menu
   createdAt   DateTime @default(now())
 
+  photoId    String?      @unique
+  photo      Photo?       @relation(fields: [photoId], references: [id])
   orderItems OrderItem[]
   recipe     RecipeLine[]
+}
+
+// Dish photo (resized on the phone before upload, about 50–200 KB). Served from /photo/<id>.
+model Photo {
+  id        String    @id @default(cuid())
+  mime      String
+  data      Bytes
+  createdAt DateTime  @default(now())
+  menuItem  MenuItem?
 }
 
 model Order {
@@ -188,6 +204,10 @@ model Order {
   guests        Int?
   customerName  String       @default("")
   customerPhone String       @default("")
+  channel       OrderChannel @default(STAFF)
+  // website orders: key of the customer's tracking page
+  trackToken    String?      @unique
+  pickupTime    String       @default("")
   createdById   String
   createdBy     Staff        @relation("OrderCreatedBy", fields: [createdById], references: [id])
 
@@ -207,6 +227,7 @@ model Order {
   items    OrderItem[]
   kots     Kot[]
   payments Payment[]
+  requests CustomerRequest[]
 
   @@index([outletId, status])
   @@index([outletId, createdAt])
@@ -226,7 +247,8 @@ model Kot {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  items OrderItem[]
+  items   OrderItem[]
+  request CustomerRequest?
 
   @@index([outletId, status])
 }
@@ -272,24 +294,38 @@ model Counter {
   @@id([outletId, key, day])
 }
 
-// Something a customer asked for from the table QR page.
-model TableRequest {
-  id          String        @id @default(cuid())
-  outletId    String
-  outlet      Outlet        @relation(fields: [outletId], references: [id])
-  tableId     String
-  table       DiningTable   @relation(fields: [tableId], references: [id])
-  kind        RequestKind
-  status      RequestStatus @default(PENDING)
+// Something a customer asked for: from a table QR (tableId set) or a website takeaway order (trackToken set).
+// ORDER requests become a kitchen ticket (KOT) only when staff accept them.
+model CustomerRequest {
+  id            String        @id @default(cuid())
+  outletId      String
+  outlet        Outlet        @relation(fields: [outletId], references: [id])
+  tableId       String?
+  table         DiningTable?  @relation(fields: [tableId], references: [id])
+  kind          RequestKind
+  status        RequestStatus @default(PENDING)
   // ORDER only: [{ menuItemId, qty, note }]
-  items       Json?
-  handledById String?
-  handledBy   Staff?        @relation(fields: [handledById], references: [id])
-  handledAt   DateTime?
-  createdAt   DateTime      @default(now())
+  items         Json?
+  // website orders: groups all rounds of one customer order, and is the key of the tracking page
+  trackToken    String?
+  customerName  String        @default("")
+  customerPhone String        @default("")
+  pickupTime    String        @default("")
+  rejectReason  String        @default("")
+  // filled when an ORDER request is accepted
+  orderId       String?
+  order         Order?        @relation(fields: [orderId], references: [id])
+  kotId         String?       @unique
+  kot           Kot?          @relation(fields: [kotId], references: [id])
+  handledById   String?
+  handledBy     Staff?        @relation(fields: [handledById], references: [id])
+  handledAt     DateTime?
+  createdAt     DateTime      @default(now())
 
   @@index([outletId, status])
   @@index([tableId, createdAt])
+  @@index([trackToken])
+  @@map("TableRequest")
 }
 
 // ---------- Inventory ----------
