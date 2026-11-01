@@ -1,7 +1,20 @@
-# DFC Family Restaurant: staff app
+# DFC Family Restaurant: restaurant system
 
-Ordering, kitchen, billing and (soon) stock for **DFC Family Restaurant** and the **DFC Mall Stall**, Gajendragad.
+Website, ordering, kitchen screen, billing, table QR and stock for **DFC Family Restaurant** and the **DFC Mall Stall**, Gajendragad.
 Everything works from a phone. A PC or tablet is optional.
+
+## Documentation
+
+| For | Read |
+|---|---|
+| Owner and staff: how to use every screen, daily routine, problems | [docs/USER-GUIDE.md](docs/USER-GUIDE.md) |
+| Business rules: roles and permissions, order / payment / stock flows, numbering, limits | [docs/FLOWS-AND-RULES.md](docs/FLOWS-AND-RULES.md) |
+| Changing the code: folder map, coding rules, adding features, fixing bugs, releasing | [docs/DEVELOPER.md](docs/DEVELOPER.md) |
+| Browser tests | [tests/e2e/README.md](tests/e2e/README.md) |
+| Free online test site (Vercel + Neon) | [deploy/FREE-TEST-SETUP.md](deploy/FREE-TEST-SETUP.md) |
+| Going live on a server | [deploy/SERVER-SETUP.md](deploy/SERVER-SETUP.md) |
+| What changed when | [CHANGELOG.md](CHANGELOG.md) |
+| Rules for AI assistants working on this repo | [CLAUDE.md](CLAUDE.md) |
 
 ## What works now (phases 1–5)
 
@@ -36,7 +49,7 @@ cp .env.example .env          # then edit DATABASE_URL / DIRECT_URL / SESSION_SE
 npx prisma migrate deploy
 npm run db:seed               # sample menu with recipes, stock, 12 tables, test logins
                               # (on an older demo database it adds the sample stock and recipes)
-npm run dev                   # http://localhost:3000
+npm run dev                   # website http://localhost:3000, staff app http://localhost:3000/staff
 ```
 
 Sample logins (change these before going live, in Manage → Staff):
@@ -49,7 +62,8 @@ Sample logins (change these before going live, in Manage → Staff):
 | Counter | 3333 | restaurant cashier |
 | Stall | 4444 | mall stall counter |
 
-`npm test` runs the bill-maths tests. `npm run lint` type-checks.
+`npm test` runs the unit tests, `npm run lint` type-checks, `npm run test:e2e` runs the browser tests
+(after `npm run build`; they use their own database, see [tests/e2e/README.md](tests/e2e/README.md)).
 
 To try the table QR: log in as Owner → *Manage → Tables* → *Customer view* next to any table
 (or *Print QR codes* and scan one with a phone on the same Wi-Fi).
@@ -123,7 +137,9 @@ src/app/page.tsx           public website (src/components/site: menu with WhatsA
 src/app/t/[token]          customer page behind each table QR (public)
 src/app/print              thermal receipt, table QR sheet
 src/app/actions            all changes (orders, manage, login)
-src/lib                    bill maths, money, login sessions, numbering
+src/lib                    bill maths, money, stock units, login sessions, numbering
+tests/e2e                  browser tests
+docs                       user guide, business rules, developer guide
 ```
 
 ## Roadmap
