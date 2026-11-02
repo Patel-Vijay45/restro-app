@@ -37,6 +37,17 @@ export default async function EditItemPage({
           <span className="label">Dish name</span>
           <input name="name" required defaultValue={item?.name} className="input" />
         </label>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="block">
+            <span className="label">Name in ಕನ್ನಡ (optional)</span>
+            <input name="nameKn" lang="kn" defaultValue={item?.nameKn} className="input" placeholder="ಚಿಕನ್ ಬಿರಿಯಾನಿ" />
+          </label>
+          <label className="block">
+            <span className="label">Name in हिंदी (optional)</span>
+            <input name="nameHi" lang="hi" defaultValue={item?.nameHi} className="input" placeholder="चिकन बिरयानी" />
+          </label>
+        </div>
+        <p className="-mt-2 text-xs text-muted">Customers who choose Kannada or Hindi see these names. Empty = English name.</p>
         <label className="block">
           <span className="label">Price (₹)</span>
           <input name="price" required inputMode="decimal" defaultValue={item ? item.price / 100 : ""} className="input" />

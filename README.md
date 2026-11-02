@@ -25,12 +25,12 @@ Everything works from a phone. A PC or tablet is optional.
 | Waiter | **Order** | Sees *READY* on the table, marks it served. Can add more items any time. |
 | Cashier / owner | **Bill** | Generates the bill, discount (% or ₹), takes Cash / UPI (QR shown on screen) / Card, split payments, shows change to give back. Print or WhatsApp the bill. |
 | Stall | **Orders** (counter mode) | Tap dishes → *Charge* → take payment → token number. **Tokens** tab: *Food ready: call #12* → *Collected*. |
-| Public | **Website** (`/`) | Logo, Call / Map buttons, opening hours, **live menu with dish photos** for the restaurant and the stall (prices and *sold out* come straight from the system), veg filter, search, **takeaway ordering**: name + mobile, pay at the counter on pickup, **live tracking page** (token number, Accepted → Cooking → Ready for pickup → Collected → Bill → Paid), add more items, Google map, set up for Google search. |
-| Customer | **Table QR** (scan, no app, no login) | Menu with photos, veg filter and sold-out dishes; sends dishes **to the waiter for confirmation**; progress bar Sent → Accepted → Cooking → Ready → Served → Bill → Paid with each round's status; **add more items** to the same bill any time; *Call waiter*, *Ask for bill*, *Pay by UPI*. |
+| Public | **Website** (`/`) | **English / ಕನ್ನಡ / हिंदी**, logo, Call / Map buttons, opening hours, **live menu with dish photos** for the restaurant and the stall (prices and *sold out* come straight from the system), veg filter, search, **takeaway ordering**: name + mobile, pay at the counter on pickup, **live tracking page** (token number, Accepted → Cooking → Ready for pickup → Collected → Bill → Paid), add more items, Google map, set up for Google search. |
+| Customer | **Table QR** (scan, no app, no login) | English / ಕನ್ನಡ / हिंदी, menu with photos (tap to enlarge), veg filter and sold-out dishes; sends dishes **to the waiter for confirmation**; progress bar Sent → Accepted → Cooking → Ready → Served → Bill → Paid with each round's status; **add more items** to the same bill any time; *Call waiter*, *Ask for bill*, *Pay by UPI*. |
 | Staff | **Orders → Customer requests** | Phone beeps and vibrates. Table and website orders: *Accept / Send to kitchen* or *Reject* with a reason the customer sees. Calls and bill requests: *Done* / *Open bill*. The table tile glows with 🛒 🔔 🧾; website orders show 🌐 with name, mobile and pickup time. |
 | Owner / manager | **Manage** | Menu (add/edit dishes, *sold out today* switch), tables, staff and PINs, outlet details (UPI ID, bill footer, printer paper size, GST switch). |
 | Owner / manager | **Stock** | Ingredients per outlet with live stock (kg / L / pcs) and *running low* list (red badge on the Stock tab). **Purchase** (quantity, amount paid, supplier: updates the average cost), **Wastage** (with reason), **Count** (enter what is really there; the difference is saved). History of every change per ingredient. |
-| Owner / manager | **Manage → Menu → dish** | **Dish photo** from the phone camera or gallery (made small automatically). |
+| Owner / manager | **Manage → Menu → 📷 Photos** | Real **photo for every dish** from the phone camera or gallery (made small automatically), with a count of dishes still missing one. Kannada / Hindi dish names inside each dish. |
 | Owner / manager | **Manage → Menu → dish → Recipe** | How much of each ingredient one portion uses (g / ml / pcs). Shows cost to make, selling price and **food cost %**. |
 | Owner / manager | **Sales** | Day's sales, bills, average bill, cash vs UPI vs card, food cost of paid bills, purchases, wastage, stock missing in counts, top dishes, **removed items and cancelled orders with reasons**, both outlets combined. |
 
@@ -53,7 +53,8 @@ npm run db:seed               # sample menu with recipes, stock, 12 tables, test
 npm run dev                   # website http://localhost:3000, staff app http://localhost:3000/staff
 ```
 
-Sample logins (change these before going live, in Manage → Staff):
+Sample logins. **The owner/admin login is "Owner" with PIN 1234.** There are no passwords: each person taps their
+name and enters a 4–6 digit PIN. Change every PIN before going live (Manage → Staff).
 
 | Login | PIN | Role |
 |---|---|---|
@@ -62,6 +63,8 @@ Sample logins (change these before going live, in Manage → Staff):
 | Kitchen | 2222 | restaurant kitchen screen |
 | Counter | 3333 | restaurant cashier |
 | Stall | 4444 | mall stall counter |
+
+Forgot the owner PIN? `npm run set-pin -- "Owner" 5678` sets a new one (see the user guide for the server and Vercel).
 
 `npm test` runs the unit tests, `npm run lint` type-checks, `npm run test:e2e` runs the browser tests
 (after `npm run build`; they use their own database, see [tests/e2e/README.md](tests/e2e/README.md)).

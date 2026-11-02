@@ -14,7 +14,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
     "postinstall": "prisma generate",
-    "test:e2e": "node tests/e2e/run.js"
+    "test:e2e": "node tests/e2e/run.js",
+    "set-pin": "tsx scripts/set-pin.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

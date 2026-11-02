@@ -21,7 +21,20 @@ async function shrink(file: File): Promise<File> {
   return new File([blob], "dish.jpg", { type: "image/jpeg" });
 }
 
-export default function PhotoUpload({ itemId, name, photoId }: { itemId: string; name: string; photoId: string | null }) {
+export default function PhotoUpload({
+  itemId,
+  name,
+  photoId,
+  category,
+  compact = false,
+}: {
+  itemId: string;
+  name: string;
+  photoId: string | null;
+  category?: string;
+  /** one row in the "all photos" list */
+  compact?: boolean;
+}) {
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [pending, start] = useTransition();
@@ -45,11 +58,22 @@ export default function PhotoUpload({ itemId, name, photoId }: { itemId: string;
   }
 
   return (
-    <div className="card mb-4 flex items-center gap-4 p-4">
-      <DishThumb photoId={photoId} name={name} size={88} />
-      <div className="flex-1 space-y-2">
-        <p className="text-sm text-muted">Shown on the website and the table QR menu.</p>
-        <input ref={input} type="file" accept="image/*" className="hidden" aria-label="Dish photo" onChange={(e) => chosen(e.target.files?.[0])} />
+    <div className={compact ? "flex items-center gap-3 p-3" : "card mb-4 flex items-center gap-4 p-4"}>
+      <DishThumb photoId={photoId} name={name} category={category} size={compact ? 64 : 88} />
+      <div className="min-w-0 flex-1 space-y-2">
+        {compact ? (
+          <p className="font-medium leading-tight">{name}</p>
+        ) : (
+          <p className="text-sm text-muted">Shown on the website and the table QR menu.</p>
+        )}
+        <input
+          ref={input}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          aria-label={compact ? `Photo for ${name}` : "Dish photo"}
+          onChange={(e) => chosen(e.target.files?.[0])}
+        />
         <div className="flex flex-wrap gap-2">
           <button type="button" disabled={pending} onClick={() => input.current?.click()} className="btn-primary min-h-10 text-sm">
             {pending ? "Uploading…" : photoId ? "📷 Change photo" : "📷 Add photo"}

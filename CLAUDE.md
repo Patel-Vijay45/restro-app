@@ -13,6 +13,7 @@ Read before changing anything:
 - `npm run lint`: type check · `npm test`: unit tests · `npm run build`: production build
 - `npm run test:e2e`: browser tests; uses its own local `<db>_e2e` database and port 3100, never the `.env` database
 - `npx prisma migrate dev --name <name>`: after editing `prisma/schema.prisma`
+- `npm run set-pin -- "<staff name>" <PIN>`: reset a PIN when nobody can log in
 
 ## Must follow
 - All writes in `src/app/actions/*`, each starting with `requireStaff(<role list from src/lib/auth.ts>)`; scope every query to `me.outletId`.
@@ -23,3 +24,4 @@ Read before changing anything:
 - Before committing: `npm run lint && npm test && npm run build && npm run test:e2e` all pass.
 - Never run `prisma migrate reset` or wipe a database that isn't the `_e2e` test database. Never edit a committed migration.
 - Phone first: check new screens at 390 px wide.
+- Customer-facing text (website, `/t/`, `/track/`) goes through `t(lang, key)` in `src/lib/i18n.ts`, in English, Kannada and Hindi. Staff screens stay English.

@@ -1,0 +1,8 @@
+-- AlterTable
+ALTER TABLE "Category" ADD COLUMN     "nameHi" TEXT NOT NULL DEFAULT '',
+ADD COLUMN     "nameKn" TEXT NOT NULL DEFAULT '';
+
+-- AlterTable
+ALTER TABLE "MenuItem" ADD COLUMN     "nameHi" TEXT NOT NULL DEFAULT '',
+ADD COLUMN     "nameKn" TEXT NOT NULL DEFAULT '';
+

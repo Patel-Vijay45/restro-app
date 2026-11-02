@@ -7,7 +7,8 @@ import { addToOnlineOrder, customerOrder } from "@/app/actions/customer";
 import type { MenuCategory, MenuEntry } from "@/lib/menu";
 import { rupees } from "@/lib/money";
 import VegMark from "./VegMark";
-import DishThumb from "./DishThumb";
+import { t, type Key, type Lang } from "@/lib/i18n";
+import ZoomThumb from "./ZoomThumb";
 
 export type PickerTarget =
   | { kind: "order"; orderId: string }
@@ -23,9 +24,12 @@ export default function MenuPicker({
   menu,
   target,
   onSent,
+  lang = "en",
 }: {
   menu: MenuCategory[];
   target: PickerTarget;
+  /** customer screens: language of the labels (staff screens are English) */
+  lang?: Lang;
   /** customer page: called after the order request is sent */
   onSent?: () => void;
 }) {
@@ -40,6 +44,7 @@ export default function MenuPicker({
   const [pending, start] = useTransition();
 
   const customerFacing = target.kind === "customer" || target.kind === "online";
+  const tr = (key: Key, vars?: Record<string, string | number>) => t(lang, key, vars);
   const allItems = useMemo(() => new Map(menu.flatMap((c) => c.items).map((i) => [i.id, i])), [menu]);
 
   const visible = useMemo(() => {
@@ -106,9 +111,9 @@ export default function MenuPicker({
     target.kind === "counter"
       ? `Charge ${rupees(total)}`
       : target.kind === "customer"
-        ? `Send order to waiter · ${rupees(total)}`
+        ? tr("send.table", { total: rupees(total) })
         : target.kind === "online"
-          ? `Add to my order · ${rupees(total)}`
+          ? tr("send.online", { total: rupees(total) })
           : "Send to kitchen";
 
   return (
@@ -116,7 +121,7 @@ export default function MenuPicker({
       <div className="sticky top-14 z-20 -mx-4 space-y-2 bg-paper px-4 pb-2 pt-1">
         <input
           className="input"
-          placeholder="Search dishes…"
+          placeholder={tr("search")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           type="search"
@@ -135,7 +140,7 @@ export default function MenuPicker({
                   <VegMark veg={f === "veg"} size={12} />
                 </span>
               )}
-              {f === "all" ? "All" : f === "veg" ? "Veg" : "Non-veg"}
+              {f === "all" ? tr("filter.all") : f === "veg" ? tr("filter.veg") : tr("filter.nonveg")}
             </button>
           ))}
           <span className="mx-1 w-px shrink-0 bg-line" />
@@ -151,7 +156,7 @@ export default function MenuPicker({
         </div>
       </div>
 
-      {visible.length === 0 && <p className="py-10 text-center text-muted">No dishes match.</p>}
+      {visible.length === 0 && <p className="py-10 text-center text-muted">{tr("noMatch")}</p>}
 
       {visible.map((c) => (
         <section key={c.id} id={`cat-${c.id}`} className="mb-4 scroll-mt-36">
@@ -162,6 +167,7 @@ export default function MenuPicker({
                 key={item.id}
                 item={item}
                 photo={customerFacing}
+                tr={tr}
                 qty={cart[item.id]?.qty ?? 0}
                 onChange={(d) => change(item.id, d)}
               />
@@ -174,9 +180,9 @@ export default function MenuPicker({
         <div className="fixed inset-x-0 bottom-16 z-30 px-4 pb-[env(safe-area-inset-bottom)]">
           <button onClick={() => setShowCart(true)} className="btn-primary mx-auto flex w-full max-w-3xl justify-between shadow-lg">
             <span>
-              {count} item{count > 1 ? "s" : ""} · {rupees(total)}
+              {count > 1 ? tr("items", { n: count }) : tr("item")} · {rupees(total)}
             </span>
-            <span>Review →</span>
+            <span>{tr("review")}</span>
           </button>
         </div>
       )}
@@ -188,9 +194,9 @@ export default function MenuPicker({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-bold">Review order</h2>
+              <h2 className="text-lg font-bold">{tr("review.title")}</h2>
               <button onClick={() => setShowCart(false)} className="text-sm text-muted">
-                Add more
+                {tr("addMore")}
               </button>
             </div>
             <div className="card mb-3 divide-y divide-line">
@@ -201,12 +207,12 @@ export default function MenuPicker({
                     <div className="flex items-center gap-2">
                       <VegMark veg={item.isVeg} />
                       <span className="flex-1 font-medium">{item.name}</span>
-                      <Stepper qty={l.qty} onChange={(d) => change(l.menuItemId, d)} />
+                      <Stepper qty={l.qty} onChange={(d) => change(l.menuItemId, d)} tr={tr} />
                     </div>
                     <div className="mt-2 flex items-center gap-2">
                       <input
                         className="input min-h-9 flex-1 text-sm"
-                        placeholder="Note (e.g. less spicy)"
+                        placeholder={tr("note.placeholder")}
                         value={l.note}
                         onChange={(e) => setNote(l.menuItemId, e.target.value)}
                         maxLength={120}
@@ -230,14 +236,14 @@ export default function MenuPicker({
               </label>
             )}
             {target.kind === "customer" && (
-              <p className="mb-3 text-sm text-muted">Your waiter will confirm the order before it goes to the kitchen.</p>
+              <p className="mb-3 text-sm text-muted">{tr("send.tableHelp")}</p>
             )}
             {target.kind === "online" && (
-              <p className="mb-3 text-sm text-muted">The restaurant will confirm these items. They go on the same bill.</p>
+              <p className="mb-3 text-sm text-muted">{tr("send.onlineHelp")}</p>
             )}
             {error && <p className="mb-2 text-sm text-nonveg">{error}</p>}
             <button onClick={submit} disabled={pending || count === 0} className="btn-gold w-full text-base">
-              {pending ? "Sending…" : submitLabel}
+              {pending ? tr("sending") : submitLabel}
             </button>
           </div>
         </div>
@@ -246,20 +252,24 @@ export default function MenuPicker({
   );
 }
 
+type Tr = (key: Key, vars?: Record<string, string | number>) => string;
+
 function ItemRow({
   item,
   qty,
   photo,
+  tr,
   onChange,
 }: {
   item: MenuEntry;
   qty: number;
   photo?: boolean;
+  tr: Tr;
   onChange: (delta: number) => void;
 }) {
   return (
     <div className={`flex items-center gap-3 p-3 ${item.isAvailable ? "" : "opacity-50"}`}>
-      {photo && <DishThumb photoId={item.photoId} name={item.name} category={item.category} size={64} />}
+      {photo && <ZoomThumb photoId={item.photoId} name={item.name} iconName={item.iconName} category={item.category} size={64} closeLabel={tr("close")} />}
       <VegMark veg={item.isVeg} />
       <div className="min-w-0 flex-1">
         <div className="font-medium leading-tight">{item.name}</div>
@@ -267,26 +277,26 @@ function ItemRow({
         <div className="text-sm text-muted">{rupees(item.price)}</div>
       </div>
       {!item.isAvailable ? (
-        <span className="text-xs font-semibold uppercase text-nonveg">Sold out</span>
+        <span className="text-xs font-semibold uppercase text-nonveg">{tr("soldOut")}</span>
       ) : qty === 0 ? (
         <button onClick={() => onChange(1)} className="btn-outline min-h-9 px-5 text-sm text-veg">
-          ADD
+          {tr("add")}
         </button>
       ) : (
-        <Stepper qty={qty} onChange={onChange} />
+        <Stepper qty={qty} onChange={onChange} tr={tr} />
       )}
     </div>
   );
 }
 
-function Stepper({ qty, onChange }: { qty: number; onChange: (delta: number) => void }) {
+function Stepper({ qty, onChange, tr = (k) => t("en", k) }: { qty: number; onChange: (delta: number) => void; tr?: Tr }) {
   return (
     <div className="flex items-center overflow-hidden rounded-xl border border-ink bg-ink text-white">
-      <button onClick={() => onChange(-1)} className="h-9 w-9 text-lg" aria-label="Less">
+      <button onClick={() => onChange(-1)} className="h-9 w-9 text-lg" aria-label={tr("less")}>
         −
       </button>
       <span className="w-7 text-center font-semibold">{qty}</span>
-      <button onClick={() => onChange(1)} className="h-9 w-9 text-lg" aria-label="More">
+      <button onClick={() => onChange(1)} className="h-9 w-9 text-lg" aria-label={tr("more")}>
         +
       </button>
     </div>

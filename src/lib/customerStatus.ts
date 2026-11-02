@@ -2,6 +2,7 @@ import "server-only";
 import type { CustomerRequest, KotStatus, Prisma } from "@prisma/client";
 import { db } from "./db";
 import { upiLink } from "./billText";
+import { localName, type Lang } from "./i18n";
 
 export type RoundStatus = "PENDING" | "REJECTED" | KotStatus;
 
@@ -43,14 +44,25 @@ export async function customerStatus(
   order: OrderWithKots | null,
   requests: CustomerRequest[],
   takeaway: boolean,
+  lang: Lang = "en",
 ): Promise<CustomerStatus> {
-  // Names for dishes in requests that are not kitchen tickets yet.
-  const ids = requests.flatMap((r) => ((r.items ?? []) as { menuItemId: string }[]).map((l) => l.menuItemId));
-  const menu = new Map((await db.menuItem.findMany({ where: { id: { in: ids } }, select: { id: true, name: true, isVeg: true } })).map((m) => [m.id, m]));
+  // Dish names in the customer's language (requests are not kitchen tickets yet; kitchen tickets store English names).
+  const ids = [
+    ...requests.flatMap((r) => ((r.items ?? []) as { menuItemId: string }[]).map((l) => l.menuItemId)),
+    ...(order?.kots ?? []).flatMap((k) => k.items.map((i) => i.menuItemId)),
+  ];
+  const menu = new Map(
+    (await db.menuItem.findMany({ where: { id: { in: ids } }, select: { id: true, name: true, nameKn: true, nameHi: true, isVeg: true } })).map((m) => [
+      m.id,
+      { name: localName(lang, m), isVeg: m.isVeg },
+    ]),
+  );
 
   const rounds: Round[] = [];
   for (const k of order?.kots ?? []) {
-    const items = k.items.filter((i) => !i.cancelled).map((i) => ({ name: i.name, qty: i.qty, isVeg: i.isVeg }));
+    const items = k.items
+      .filter((i) => !i.cancelled)
+      .map((i) => ({ name: lang === "en" ? i.name : menu.get(i.menuItemId)?.name ?? i.name, qty: i.qty, isVeg: i.isVeg }));
     if (items.length) rounds.push({ id: k.id, status: k.status, rejectReason: "", at: k.createdAt.toISOString(), items });
   }
   for (const r of requests) {

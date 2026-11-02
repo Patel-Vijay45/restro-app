@@ -6,16 +6,23 @@ import { placeOnlineOrder } from "@/app/actions/customer";
 import type { MenuCategory, MenuEntry } from "@/lib/menu";
 import { rupees } from "@/lib/money";
 import { rememberOrder } from "@/lib/myOrders";
-import DishThumb from "@/components/DishThumb";
+import ZoomThumb from "@/components/ZoomThumb";
+import { t, type Key, type Lang } from "@/lib/i18n";
 import VegMark from "@/components/VegMark";
 
 type Outlet = { id: string; name: string; menu: MenuCategory[] };
 type Filter = "all" | "veg" | "nonveg";
 
-const PICKUP_CHOICES = ["As soon as possible", "In 30 minutes", "In 1 hour"];
+// Stored in English (staff read them), shown in the customer's language.
+const PICKUP_CHOICES: { value: string; key: Key }[] = [
+  { value: "As soon as possible", key: "pickup.asap" },
+  { value: "In 30 minutes", key: "pickup.30" },
+  { value: "In 1 hour", key: "pickup.60" },
+];
 
 /** Public menu with photos and takeaway ordering. Payment happens at the counter when collecting. */
-export default function WebsiteMenu({ outlets }: { outlets: Outlet[] }) {
+export default function WebsiteMenu({ outlets, lang = "en" }: { outlets: Outlet[]; lang?: Lang }) {
+  const tr = (key: Key, vars?: Record<string, string | number>) => t(lang, key, vars);
   const router = useRouter();
   const [outletId, setOutletId] = useState(outlets[0]?.id ?? "");
   const [filter, setFilter] = useState<Filter>("all");
@@ -24,7 +31,7 @@ export default function WebsiteMenu({ outlets }: { outlets: Outlet[] }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [pickup, setPickup] = useState(PICKUP_CHOICES[0]);
+  const [pickup, setPickup] = useState(PICKUP_CHOICES[0].value);
   const [error, setError] = useState("");
   const [pending, start] = useTransition();
 
@@ -41,7 +48,7 @@ export default function WebsiteMenu({ outlets }: { outlets: Outlet[] }) {
       .filter((c) => c.items.length > 0);
   }, [outlet, filter, search]);
 
-  if (!outlet) return <p className="text-muted">Menu coming soon.</p>;
+  if (!outlet) return <p className="text-muted">{tr("menu.comingSoon")}</p>;
 
   const lines = Object.entries(cart)
     .map(([id, qty]) => ({ item: items.get(id), qty }))
@@ -94,7 +101,7 @@ export default function WebsiteMenu({ outlets }: { outlets: Outlet[] }) {
       )}
 
       <div className="sticky top-14 z-20 -mx-4 space-y-2 bg-paper px-4 pb-2 pt-2">
-        <input className="input" type="search" placeholder="Search dishes…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <input className="input" type="search" placeholder={tr("search")} value={search} onChange={(e) => setSearch(e.target.value)} />
         <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
           {(["all", "veg", "nonveg"] as Filter[]).map((f) => (
             <button
@@ -109,7 +116,7 @@ export default function WebsiteMenu({ outlets }: { outlets: Outlet[] }) {
                   <VegMark veg={f === "veg"} size={12} />
                 </span>
               )}
-              {f === "all" ? "All" : f === "veg" ? "Veg" : "Non-veg"}
+              {f === "all" ? tr("filter.all") : f === "veg" ? tr("filter.veg") : tr("filter.nonveg")}
             </button>
           ))}
           <span className="mx-1 w-px shrink-0 bg-line" />
@@ -121,7 +128,7 @@ export default function WebsiteMenu({ outlets }: { outlets: Outlet[] }) {
         </div>
       </div>
 
-      {visible.length === 0 && <p className="py-10 text-center text-muted">No dishes match.</p>}
+      {visible.length === 0 && <p className="py-10 text-center text-muted">{tr("noMatch")}</p>}
 
       <div className="gap-6 sm:columns-2">
         {visible.map((c) => (
@@ -130,7 +137,7 @@ export default function WebsiteMenu({ outlets }: { outlets: Outlet[] }) {
             <div className="card divide-y divide-line">
               {c.items.map((i) => (
                 <div key={i.id} className={`flex items-center gap-3 p-3 ${i.isAvailable ? "" : "opacity-50"}`}>
-                  <DishThumb photoId={i.photoId} name={i.name} category={c.name} size={72} />
+                  <ZoomThumb photoId={i.photoId} name={i.name} iconName={i.iconName} category={i.category} size={72} closeLabel={tr("close")} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start gap-1.5">
                       <span className="pt-1">
@@ -142,20 +149,20 @@ export default function WebsiteMenu({ outlets }: { outlets: Outlet[] }) {
                     <div className="mt-0.5 text-sm font-semibold text-ink/80">{rupees(i.price)}</div>
                   </div>
                   {!i.isAvailable ? (
-                    <span className="text-xs font-semibold uppercase text-nonveg">Sold out</span>
+                    <span className="text-xs font-semibold uppercase text-nonveg">{tr("soldOut")}</span>
                   ) : cart[i.id] ? (
                     <div className="flex items-center overflow-hidden rounded-xl bg-ink text-white">
-                      <button onClick={() => change(i.id, -1)} className="h-9 w-9 text-lg" aria-label={`Less ${i.name}`}>
+                      <button onClick={() => change(i.id, -1)} className="h-9 w-9 text-lg" aria-label={`${tr("less")} ${i.name}`}>
                         −
                       </button>
                       <span className="w-6 text-center font-semibold">{cart[i.id]}</span>
-                      <button onClick={() => change(i.id, 1)} className="h-9 w-9 text-lg" aria-label={`More ${i.name}`}>
+                      <button onClick={() => change(i.id, 1)} className="h-9 w-9 text-lg" aria-label={`${tr("more")} ${i.name}`}>
                         +
                       </button>
                     </div>
                   ) : (
-                    <button onClick={() => change(i.id, 1)} className="btn-outline min-h-9 px-4 text-sm text-veg" aria-label={`Add ${i.name}`}>
-                      ADD
+                    <button onClick={() => change(i.id, 1)} className="btn-outline min-h-9 px-4 text-sm text-veg" aria-label={`${tr("add")} ${i.name}`}>
+                      {tr("add")}
                     </button>
                   )}
                 </div>
@@ -169,9 +176,9 @@ export default function WebsiteMenu({ outlets }: { outlets: Outlet[] }) {
         <div className="fixed inset-x-0 bottom-0 z-30 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <button onClick={() => setOpen(true)} className="btn-primary mx-auto flex w-full max-w-md justify-between shadow-xl">
             <span>
-              {count} item{count > 1 ? "s" : ""} · {rupees(total)}
+              {count > 1 ? tr("items", { n: count }) : tr("item")} · {rupees(total)}
             </span>
-            <span>Order takeaway →</span>
+            <span>{tr("checkout.open")}</span>
           </button>
         </div>
       )}
@@ -185,9 +192,9 @@ export default function WebsiteMenu({ outlets }: { outlets: Outlet[] }) {
             aria-label="Your takeaway order"
           >
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-lg font-bold">Takeaway from {short(outlet.name)}</h3>
+              <h3 className="text-lg font-bold">{tr("checkout.title", { outlet: short(outlet.name) })}</h3>
               <button onClick={() => setOpen(false)} className="text-sm text-muted">
-                Add more
+                {tr("addMore")}
               </button>
             </div>
             <div className="card mb-3 divide-y divide-line">
@@ -201,35 +208,43 @@ export default function WebsiteMenu({ outlets }: { outlets: Outlet[] }) {
                 </div>
               ))}
               <div className="flex justify-between p-3 font-bold">
-                <span>Total</span>
+                <span>{tr("total")}</span>
                 <span>{rupees(total)}</span>
               </div>
             </div>
             <div className="mb-3 space-y-3">
               <label className="block">
-                <span className="label">Your name</span>
+                <span className="label">{tr("checkout.name")}</span>
                 <input className="input" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
               </label>
               <label className="block">
-                <span className="label">Mobile number</span>
-                <input className="input" inputMode="tel" autoComplete="tel" placeholder="10-digit number" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <span className="label">{tr("checkout.mobile")}</span>
+                <input
+                  className="input"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder={tr("checkout.mobilePlaceholder")}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
               </label>
               <label className="block">
-                <span className="label">Pickup</span>
+                <span className="label">{tr("checkout.pickup")}</span>
                 <select className="input" value={pickup} onChange={(e) => setPickup(e.target.value)}>
                   {PICKUP_CHOICES.map((c) => (
-                    <option key={c}>{c}</option>
+                    <option key={c.value} value={c.value}>
+                      {tr(c.key)}
+                    </option>
                   ))}
                 </select>
               </label>
             </div>
             {error && <p className="mb-2 rounded-xl bg-billed p-3 text-sm text-nonveg">{error}</p>}
             <button onClick={placeOrder} disabled={pending} className="btn-gold w-full text-base">
-              {pending ? "Placing order…" : `Place order · ${rupees(total)}`}
+              {pending ? tr("checkout.placing") : tr("checkout.place", { total: rupees(total) })}
             </button>
-            <p className="mt-2 text-center text-xs text-muted">
-              The restaurant confirms your order. You can follow it live and add more items. Pay at the counter when you collect.
-            </p>
+            <p className="mt-2 text-center text-xs text-muted">{tr("checkout.note")}</p>
+            <p className="mt-3 rounded-xl bg-gold-soft p-2.5 text-center text-xs">🍽️ {tr("checkout.dineInHint")}</p>
           </div>
         </div>
       )}

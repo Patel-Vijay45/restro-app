@@ -32,21 +32,28 @@ export default async function MenuAdminPage({ searchParams }: { searchParams: Pr
         <p className="text-sm text-muted">
           Tap a dish to change it or add a photo. Turn a switch off when it runs out today.{soldOut > 0 && <b className="text-nonveg"> {soldOut} sold out.</b>}
         </p>
-        <Link href="/manage/menu/new" className="btn-primary min-h-9 shrink-0 text-sm">
-          + Dish
-        </Link>
+        <div className="flex shrink-0 gap-2">
+          <Link href="/manage/menu/photos" className="btn-outline min-h-9 px-3 text-sm">
+            📷 Photos
+          </Link>
+          <Link href="/manage/menu/new" className="btn-primary min-h-9 px-3 text-sm">
+            + Dish
+          </Link>
+        </div>
       </div>
 
       {categories.map((c) => (
         <section key={c.id} className="mb-5">
           <details className="mb-2">
             <summary className="cursor-pointer list-none text-sm font-bold uppercase tracking-wide text-muted">
-              {c.name} <span className="font-normal normal-case">· rename</span>
+              {c.name} <span className="font-normal normal-case">· rename / ಕನ್ನಡ / हिंदी</span>
             </summary>
-            <form action={saveCategory} className="mt-2 flex gap-2">
+            <form action={saveCategory} className="mt-2 grid grid-cols-2 gap-2">
               <input type="hidden" name="id" value={c.id} />
-              <input name="name" defaultValue={c.name} className="input" />
-              <button className="btn-outline">Save</button>
+              <input name="name" defaultValue={c.name} className="input col-span-2" aria-label="Category name" />
+              <input name="nameKn" lang="kn" defaultValue={c.nameKn} className="input" placeholder="ಕನ್ನಡ" aria-label="Category name in Kannada" />
+              <input name="nameHi" lang="hi" defaultValue={c.nameHi} className="input" placeholder="हिंदी" aria-label="Category name in Hindi" />
+              <button className="btn-outline col-span-2">Save</button>
             </form>
           </details>
           <div className="card divide-y divide-line">

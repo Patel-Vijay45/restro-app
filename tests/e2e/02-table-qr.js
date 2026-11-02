@@ -90,6 +90,13 @@ run(async (browser) => {
   await shot(a4, '08-qr-sheet');
 
   // Bad token
+  // the table page in Kannada
+  await cust.selectOption('select[aria-label=Language]', 'kn');
+  await cust.waitForSelector('text=ನನ್ನ ಆರ್ಡರ್');
+  check('Kannada table page', (await cust.locator('text=ವೇಟರ್ ಕರೆಯಿರಿ').count()) > 0);
+  await shot(cust, '09-kannada-status');
+  await cust.selectOption('select[aria-label=Language]', 'en');
+
   await cust.goto(BASE + '/t/not-a-real-token');
   await cust.waitForSelector('text=This QR code is not active');
 });

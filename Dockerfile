@@ -21,8 +21,9 @@ COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
 COPY --from=build /app/prisma ./prisma
-# needed by the seed script
+# needed by the seed script and the PIN recovery command
 COPY --from=build /app/src/lib/pin.ts ./src/lib/pin.ts
+COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
 EXPOSE 3000

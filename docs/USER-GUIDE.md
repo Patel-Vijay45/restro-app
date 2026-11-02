@@ -115,9 +115,12 @@ Token and KOT numbers start from 1 every day.
 ### Menu (Manage → Menu)
 - **Sold out today:** turn the switch off next to the dish. It shows as *Sold out* and can't be ordered on staff phones, the table QR or the website. It stays off until you turn it back on.
 - **Change a price or name:** tap the dish → edit → Save. Old bills keep the old price.
-- **Dish photo:** tap the dish → **📷 Add photo** → take a photo or pick one from the gallery. It is made smaller automatically
-  and shows on the website and the table QR menu. **Change photo** / **Remove** on the same screen. Tips: daylight, plate filling
-  the frame, plain background.
+- **Dish photos:** **📷 Photos** (top of Manage → Menu) lists every dish with **Add photo**, and shows how many still have none.
+  Take a picture of the real dish or pick one from the gallery. It is made smaller automatically and shows on the website and
+  the table QR menu (customers can tap it to see it large). **Change photo** / **Remove** next to it. Also inside each dish.
+  Tips: daylight, plate filling the frame, plain background.
+- **Kannada / Hindi names:** inside a dish, *Name in ಕನ್ನಡ* and *Name in हिंदी*. Categories: tap the category name →
+  rename / ಕನ್ನಡ / हिंदी. Customers who pick that language see these names; empty means the English name is shown.
 - **New dish:** **+ Dish**. **New category:** box at the bottom.
 - **Remove a dish:** open it → *Remove from menu* (old bills still show it).
 - **Recipe and cost** (inside a dish): how much of each ingredient **one portion** uses. Shows cost to make and food cost %
@@ -163,6 +166,11 @@ open orders, food cost of paid bills, purchases, wastage, value missing in stock
 
 ## Customers
 
+**Language:** the menu at the top right switches the website, table QR page and tracking page between English, ಕನ್ನಡ and हिंदी.
+Staff always see orders in English.
+
+**Eating at the restaurant?** They order from the **table QR**. The website is for **takeaway**, and says so above the menu.
+
 Customers see the same steps everywhere:
 **Sent → Accepted → Cooking → Ready → Served (Collected for takeaway) → Bill → Paid.**
 
@@ -202,6 +210,7 @@ Customers see the same steps everywhere:
 | Problem | Fix |
 |---|---|
 | Forgot PIN | Owner or manager sets a new one in Manage → Staff. |
+| **Owner forgot the PIN** (nobody can log in) | On the computer that runs the app: `npm run set-pin -- "Owner" 5678`. On the server: `sudo docker compose exec app tsx scripts/set-pin.ts "Owner" 5678`. On the free test site: put the Neon `DATABASE_URL` in your laptop's `.env` for a moment and run the first command. It also unlocks the login. |
 | "Too many wrong PINs" | Wait 5 minutes. |
 | Screen not updating | Check the internet. Pull down to reload. |
 | Kitchen not beeping | Tap the kitchen screen once after opening it (phones block sound until you touch the page). Keep volume up. |

@@ -2,6 +2,13 @@
 
 Newest first. Add an entry for every change that people will notice.
 
+## 2026-11-02: Languages, photos screen, dine-in hint
+- Customer screens (website, table QR, order tracking) in **English, Kannada and Hindi**; Kannada / Hindi dish and category
+  names (sample menu included; `npm run db:seed` adds them to an existing database).
+- Website explains that dine-in orders are made from the table QR ("Eating here? Scan the QR code on your table").
+- **📷 Photos** screen: every dish with its photo and an upload button; customers can tap a photo to see it large.
+- `npm run set-pin` to reset a PIN when nobody can log in.
+
 ## 2026-11-01: Customer ordering and dish photos
 - **Website takeaway orders** in the system (WhatsApp ordering removed): name + mobile, pay at the counter on pickup,
   live tracking page with token number, add more items until paid.

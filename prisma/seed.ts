@@ -54,15 +54,66 @@ const stallMenu: Record<string, SeedItem[]> = {
   ],
 };
 
+
+// Kannada and Hindi names for the sample dishes and categories (customers can switch language on the website / QR page).
+const TRANSLATIONS: Record<string, [kn: string, hi: string]> = {
+  Starters: ["ಸ್ಟಾರ್ಟರ್ಸ್", "स्टार्टर्स"],
+  Biryani: ["ಬಿರಿಯಾನಿ", "बिरयानी"],
+  "Main Course": ["ಮುಖ್ಯ ಊಟ", "मेन कोर्स"],
+  "Rice & Breads": ["ಅನ್ನ ಮತ್ತು ರೊಟ್ಟಿ", "चावल और रोटी"],
+  Drinks: ["ಪಾನೀಯಗಳು", "पेय"],
+  Snacks: ["ಸ್ನ್ಯಾಕ್ಸ್", "स्नैक्स"],
+  "Gobi Manchurian": ["ಗೋಬಿ ಮಂಚೂರಿ", "गोभी मंचूरियन"],
+  "Paneer 65": ["ಪನೀರ್ 65", "पनीर 65"],
+  "Chicken 65": ["ಚಿಕನ್ 65", "चिकन 65"],
+  "Chicken Kabab": ["ಚಿಕನ್ ಕಬಾಬ್", "चिकन कबाब"],
+  "Fish Fry": ["ಮೀನು ಫ್ರೈ", "फिश फ्राई"],
+  "Veg Biryani": ["ವೆಜ್ ಬಿರಿಯಾನಿ", "वेज बिरयानी"],
+  "Egg Biryani": ["ಮೊಟ್ಟೆ ಬಿರಿಯಾನಿ", "अंडा बिरयानी"],
+  "Chicken Biryani": ["ಚಿಕನ್ ಬಿರಿಯಾನಿ", "चिकन बिरयानी"],
+  "Mutton Biryani": ["ಮಟನ್ ಬಿರಿಯಾನಿ", "मटन बिरयानी"],
+  "Dal Fry": ["ದಾಲ್ ಫ್ರೈ", "दाल फ्राई"],
+  "Paneer Butter Masala": ["ಪನೀರ್ ಬಟರ್ ಮಸಾಲಾ", "पनीर बटर मसाला"],
+  "Chicken Curry": ["ಚಿಕನ್ ಕರಿ", "चिकन करी"],
+  "Butter Chicken": ["ಬಟರ್ ಚಿಕನ್", "बटर चिकन"],
+  "Mutton Masala": ["ಮಟನ್ ಮಸಾಲಾ", "मटन मसाला"],
+  "Jeera Rice": ["ಜೀರಾ ರೈಸ್", "जीरा राइस"],
+  "Ghee Rice": ["ತುಪ್ಪದ ಅನ್ನ", "घी राइस"],
+  Chapati: ["ಚಪಾತಿ", "चपाती"],
+  "Butter Naan": ["ಬಟರ್ ನಾನ್", "बटर नान"],
+  "Sweet Lassi": ["ಸಿಹಿ ಲಸ್ಸಿ", "मीठी लस्सी"],
+  "Fresh Lime Soda": ["ಫ್ರೆಶ್ ಲೈಮ್ ಸೋಡಾ", "फ्रेश लाइम सोडा"],
+  "Soft Drink": ["ತಂಪು ಪಾನೀಯ", "सॉफ्ट ड्रिंक"],
+  "Veg Puff": ["ವೆಜ್ ಪಫ್", "वेज पफ"],
+  "French Fries": ["ಫ್ರೆಂಚ್ ಫ್ರೈಸ್", "फ्रेंच फ्राइज़"],
+  "Veg Roll": ["ವೆಜ್ ರೋಲ್", "वेज रोल"],
+  "Chicken Roll": ["ಚಿಕನ್ ರೋಲ್", "चिकन रोल"],
+  "Chicken Shawarma": ["ಚಿಕನ್ ಶವರ್ಮಾ", "चिकन शवरमा"],
+  "Cold Coffee": ["ಕೋಲ್ಡ್ ಕಾಫಿ", "कोल्ड कॉफ़ी"],
+  "Lime Juice": ["ನಿಂಬೆ ಜ್ಯೂಸ್", "नींबू पानी"],
+};
+const tr = (name: string) => ({ nameKn: TRANSLATIONS[name]?.[0] ?? "", nameHi: TRANSLATIONS[name]?.[1] ?? "" });
+
+/** Older databases: fill in Kannada / Hindi names that are still empty (never overwrites names typed by staff). */
+async function addTranslations(): Promise<number> {
+  let n = 0;
+  for (const [name, [nameKn, nameHi]] of Object.entries(TRANSLATIONS)) {
+    n += (await db.menuItem.updateMany({ where: { name, nameKn: "", nameHi: "" }, data: { nameKn, nameHi } })).count;
+    n += (await db.category.updateMany({ where: { name, nameKn: "", nameHi: "" }, data: { nameKn, nameHi } })).count;
+  }
+  return n;
+}
+
 async function addMenu(outletId: string, menu: Record<string, SeedItem[]>) {
   let catOrder = 0;
   for (const [categoryName, items] of Object.entries(menu)) {
-    const category = await db.category.create({ data: { outletId, name: categoryName, sortOrder: catOrder++ } });
+    const category = await db.category.create({ data: { outletId, name: categoryName, ...tr(categoryName), sortOrder: catOrder++ } });
     await db.menuItem.createMany({
       data: items.map(([name, price, isVeg], i) => ({
         outletId,
         categoryId: category.id,
         name,
+        ...tr(name),
         price: price * 100,
         isVeg,
         sortOrder: i,
@@ -185,7 +236,10 @@ async function main() {
       const ok = await addInventory(o.id, o.type === "RESTAURANT" ? restaurantIngredients : stallIngredients, o.type === "RESTAURANT" ? restaurantRecipes : stallRecipes);
       if (ok) added++;
     }
-    console.log(added ? `Added sample stock and recipes to ${added} outlet(s).` : "Database already has data, skipping seed.");
+    const translated = await addTranslations();
+    if (added) console.log(`Added sample stock and recipes to ${added} outlet(s).`);
+    if (translated) console.log(`Added Kannada / Hindi names to ${translated} sample dishes and categories.`);
+    if (!added && !translated) console.log("Database already has data, skipping seed.");
     return;
   }
 

@@ -53,6 +53,9 @@ Every `git push` to `main` updates the test site automatically. Data is kept bet
 The repository is public and the test PINs (1234, 1111, …) are written in the README, so anyone who finds the link
 could log in. Log in as **Owner** (PIN 1234) → **Manage → Staff** → give every login a new PIN, Owner first.
 
+**Forgot the owner PIN later?** On your laptop (project folder), put the Neon **direct** connection string as `DATABASE_URL`
+in `.env` for a moment, run `npm run set-pin -- "Owner" 5678`, then put your local value back.
+
 ## Good to know
 
 - The first visit after a quiet period can take a few seconds: the free database sleeps when nobody uses it.

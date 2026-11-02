@@ -5,6 +5,9 @@ import { baseUrl } from "@/lib/baseUrl";
 import { prettyPhone, telLink, whatsappLink } from "@/lib/contact";
 import WebsiteMenu from "@/components/site/WebsiteMenu";
 import MyOrderBanner from "@/components/site/MyOrderBanner";
+import LangSwitch from "@/components/LangSwitch";
+import { currentLang } from "@/lib/lang";
+import { t, type Key } from "@/lib/i18n";
 
 // Reads the live menu on every visit, so prices and sold-out dishes are always current.
 export const dynamic = "force-dynamic";
@@ -31,8 +34,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Website() {
+  const lang = await currentLang();
+  const tr = (key: Key, vars?: Record<string, string | number>) => t(lang, key, vars);
   const outlets = await db.outlet.findMany({ where: { showOnWebsite: true }, orderBy: { sortOrder: "asc" } });
-  const menus = await Promise.all(outlets.map(async (o) => ({ outlet: o, menu: await getMenu(o.id) })));
+  const menus = await Promise.all(outlets.map(async (o) => ({ outlet: o, menu: await getMenu(o.id, lang) })));
   const main = outlets.find((o) => o.type === "RESTAURANT") ?? outlets[0];
   const base = await baseUrl();
 
@@ -52,7 +57,7 @@ export default async function Website() {
   };
 
   return (
-    <div className="min-h-dvh bg-paper">
+    <div className="min-h-dvh bg-paper" lang={lang}>
       {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />}
 
       <header className="sticky top-0 z-30 border-b border-white/10 bg-ink/95 text-white backdrop-blur">
@@ -62,23 +67,24 @@ export default async function Website() {
             <img src="/logo.png" alt="" width={36} height={36} className="size-9 rounded-full" />
             <span className="font-serif text-lg font-bold tracking-wide text-gold">DFC</span>
           </a>
-          <nav className="ml-auto flex items-center gap-4 text-sm">
-            <a href="#menu" className="text-white/80 hover:text-white">
-              Menu
+          <nav className="ml-auto flex items-center gap-3 text-sm">
+            <a href="#menu" className="hidden text-white/80 hover:text-white sm:inline">
+              {tr("nav.menu")}
             </a>
-            <a href="#visit" className="text-white/80 hover:text-white">
-              Visit
+            <a href="#visit" className="hidden text-white/80 hover:text-white sm:inline">
+              {tr("nav.visit")}
             </a>
+            <LangSwitch lang={lang} />
             {main?.phone && (
               <a href={telLink(main.phone)} className="rounded-full bg-gold px-3 py-1.5 font-semibold text-ink">
-                Call
+                {tr("call")}
               </a>
             )}
           </nav>
         </div>
       </header>
 
-      <MyOrderBanner />
+      <MyOrderBanner text={tr("banner.yourOrder", { outlet: "{outlet}" })} />
 
       <section id="top" className="relative overflow-hidden bg-ink text-white">
         <div
@@ -90,56 +96,60 @@ export default async function Website() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="DFC Family Restaurant logo" width={120} height={120} className="mb-5 size-28 rounded-full shadow-[0_0_0_3px_rgba(201,154,46,0.6)]" />
           <h1 className="font-serif text-4xl font-bold leading-tight sm:text-5xl">DFC Family Restaurant</h1>
-          <p className="mt-2 text-lg text-white/80">{main?.tagline || "Veg & non-veg family dining"} · Gajendragad</p>
+          <p className="mt-2 text-lg text-white/80">
+            {lang === "en" ? main?.tagline || tr("hero.tagline") : tr("hero.tagline")} · {tr("place")}
+          </p>
           <div className="mt-4 flex flex-wrap justify-center gap-2 text-sm">
             <span className="flex items-center gap-1.5 rounded-full border border-veg/60 bg-veg/15 px-3 py-1">
-              <span className="size-2 rounded-full bg-veg" /> Veg
+              <span className="size-2 rounded-full bg-veg" /> {tr("badge.veg")}
             </span>
             <span className="flex items-center gap-1.5 rounded-full border border-nonveg/60 bg-nonveg/20 px-3 py-1">
-              <span className="size-2 rounded-full bg-nonveg" /> Non-veg
+              <span className="size-2 rounded-full bg-nonveg" /> {tr("badge.nonveg")}
             </span>
-            <span className="rounded-full border border-white/20 px-3 py-1">Family dining</span>
-            <span className="rounded-full border border-white/20 px-3 py-1">Takeaway</span>
+            <span className="rounded-full border border-white/20 px-3 py-1">{tr("badge.family")}</span>
+            <span className="rounded-full border border-white/20 px-3 py-1">{tr("badge.takeaway")}</span>
           </div>
           {main?.hours && <p className="mt-4 text-sm text-gold">🕐 {main.hours}</p>}
           <div className="mt-6 grid w-full max-w-md grid-cols-3 gap-2">
             {main?.phone && (
               <a href={telLink(main.phone)} className="btn-gold">
-                📞 Call
+                📞 {tr("call")}
               </a>
             )}
             <a href="#menu" className="btn border border-white/25 text-white">
-              🛍️ Order
+              {tr("hero.order")}
             </a>
             {main?.mapsUrl && (
               <a href={main.mapsUrl} target="_blank" rel="noopener" className="btn border border-white/25 text-white" aria-label="Directions on Google Maps">
-                📍 Map
+                {tr("hero.map")}
               </a>
             )}
           </div>
           <a href="#menu" className="mt-8 text-sm text-white/70 underline underline-offset-4">
-            See the menu ↓
+            {tr("hero.seeMenu")}
           </a>
         </div>
       </section>
 
       <section className="mx-auto grid max-w-5xl gap-3 px-4 py-8 sm:grid-cols-3">
-        <Feature icon="🍗" title="Biryani, starters & curries" text="Chicken, mutton, fish, paneer and more, cooked to order." />
-        <Feature icon="🟩" title="Clear veg / non-veg marks" text="Every dish shows the green or red mark, so families can choose with ease." />
-        <Feature icon="🛍️" title="Order takeaway online" text="Pick dishes below, follow your order live, and pay at the counter when you collect." />
+        <Feature icon="🍗" title={tr("feature1.title")} text={tr("feature1.text")} />
+        <Feature icon="🟩" title={tr("feature2.title")} text={tr("feature2.text")} />
+        <Feature icon="🛍️" title={tr("feature3.title")} text={tr("feature3.text")} />
       </section>
 
       <section id="menu" className="mx-auto max-w-5xl scroll-mt-14 px-4 pb-10">
-        <h2 className="mb-1 font-serif text-3xl font-bold">Menu</h2>
-        <p className="mb-4 text-sm text-muted">Prices in ₹. Dishes marked sold out are not available today.</p>
-        <WebsiteMenu
-          outlets={menus.map(({ outlet, menu }) => ({ id: outlet.id, name: outlet.name, menu }))}
-        />
+        <h2 className="mb-1 font-serif text-3xl font-bold">{tr("menu.title")}</h2>
+        <p className="mb-3 text-sm text-muted">{tr("menu.note")}</p>
+        <p className="mb-4 flex items-start gap-2 rounded-xl border border-gold/50 bg-gold-soft p-3 text-sm">
+          <span aria-hidden className="text-lg leading-none">🍽️</span>
+          <span>{tr("menu.dineInHint")}</span>
+        </p>
+        <WebsiteMenu lang={lang} outlets={menus.map(({ outlet, menu }) => ({ id: outlet.id, name: outlet.name, menu }))} />
       </section>
 
       <section id="visit" className="scroll-mt-14 bg-white py-10">
         <div className="mx-auto max-w-5xl px-4">
-          <h2 className="mb-4 font-serif text-3xl font-bold">Visit us</h2>
+          <h2 className="mb-4 font-serif text-3xl font-bold">{tr("visit.title")}</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {outlets.map((o) => (
               <div key={o.id} className="card p-5">
@@ -153,7 +163,7 @@ export default async function Website() {
                 <div className="mt-4 flex flex-wrap gap-2">
                   {o.phone && (
                     <a href={telLink(o.phone)} className="btn-primary min-h-10 text-sm">
-                      Call
+                      {tr("call")}
                     </a>
                   )}
                   {o.phone && (
@@ -163,7 +173,7 @@ export default async function Website() {
                   )}
                   {o.mapsUrl && (
                     <a href={o.mapsUrl} target="_blank" rel="noopener" className="btn-outline min-h-10 text-sm">
-                      Directions
+                      {tr("visit.directions")}
                     </a>
                   )}
                 </div>

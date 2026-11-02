@@ -1,4 +1,4 @@
-// Public website: buttons, live menu, takeaway checkout → tracking page, "Your order" banner, stall tab, veg filter, sold out, /staff entry, desktop layout.
+// Public website: buttons, live menu, takeaway checkout → tracking page, "Your order" banner, stall tab, veg filter, sold out, dine-in hint, Kannada / Hindi, /staff entry, desktop layout.
 const { BASE, ctx, login, shot, check, run } = require("./helpers");
 
 run(async (browser) => {
@@ -53,6 +53,34 @@ run(async (browser) => {
   check('sold out on website', /sold out/i.test(await mutton.innerText()));
   await owner.goto(BASE + '/staff');
   check('staff entry -> orders', owner.url().endsWith('/orders'));
+
+  // dine-in hint
+  check('dine-in hint on website', (await site.locator('text=Scan the QR code on your table').count()) > 0);
+
+  // languages: Kannada, then Hindi (with a translated error), then back to English
+  const lang = await ctx(browser);
+  await lang.route(/google\.com/, r => r.abort());
+  await lang.goto(BASE + '/');
+  await lang.selectOption('select[aria-label=Language]', 'kn');
+  await lang.waitForSelector('text=ಚಿಕನ್ ಬಿರಿಯಾನಿ');
+  check('Kannada dish name and button', (await lang.locator('text=ಸೇರಿಸಿ').count()) > 0);
+  check('Kannada dine-in hint', (await lang.locator('text=ನಿಮ್ಮ ಟೇಬಲ್ ಮೇಲಿನ QR ಕೋಡ್').count()) > 0);
+  await lang.locator('#menu').scrollIntoViewIfNeeded();
+  await shot(lang, '07-kannada');
+  await lang.selectOption('select[aria-label=Language]', 'hi');
+  await lang.waitForSelector('text=चिकन बिरयानी');
+  await lang.getByRole('button', { name: 'जोड़ें चिकन बिरयानी' }).click();
+  await lang.getByRole('button', { name: /पार्सल ऑर्डर करें/ }).click();
+  await lang.getByLabel('आपका नाम').fill('Test');
+  await lang.getByLabel('मोबाइल नंबर').fill('12345');
+  await lang.getByRole('button', { name: /ऑर्डर करें ·/ }).click();
+  await lang.waitForSelector('text=सही 10 अंकों का मोबाइल नंबर लिखें');
+  console.log('ok  Hindi checkout with a Hindi error message');
+  await shot(lang, '08-hindi-checkout');
+  await lang.goto(BASE + '/');
+  await lang.selectOption('select[aria-label=Language]', 'en');
+  await lang.waitForSelector('text=Chicken Biryani');
+  console.log('ok  back to English');
 
   const desk = await ctx(browser, { viewport: { width: 1280, height: 860 }, isMobile: false, hasTouch: false, deviceScaleFactor: 1 });
   await desk.route(/google\.com/, r => r.abort());

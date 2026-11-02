@@ -38,7 +38,15 @@ export async function saveItem(form: FormData) {
   const category = await db.category.findFirst({ where: { id: categoryId, outletId: me.outletId } });
   if (!category) back(path, "Choose a category");
 
-  const data = { name, price, categoryId, isVeg, description: text(form, "description", 200) };
+  const data = {
+    name,
+    nameKn: text(form, "nameKn"),
+    nameHi: text(form, "nameHi"),
+    price,
+    categoryId,
+    isVeg,
+    description: text(form, "description", 200),
+  };
   if (id) {
     await db.menuItem.updateMany({ where: { id, outletId: me.outletId }, data });
   } else {
@@ -59,11 +67,12 @@ export async function saveCategory(form: FormData) {
   const id = text(form, "id");
   const name = text(form, "name", 40);
   if (!name) back("/manage/menu", "Enter a category name");
+  const names = { name, nameKn: text(form, "nameKn", 40), nameHi: text(form, "nameHi", 40) };
   if (id) {
-    await db.category.updateMany({ where: { id, outletId: me.outletId }, data: { name } });
+    await db.category.updateMany({ where: { id, outletId: me.outletId }, data: names });
   } else {
     const count = await db.category.count({ where: { outletId: me.outletId } });
-    await db.category.create({ data: { outletId: me.outletId, name, sortOrder: count } });
+    await db.category.create({ data: { outletId: me.outletId, ...names, sortOrder: count } });
   }
   back("/manage/menu");
 }

@@ -1,5 +1,5 @@
 // Website takeaway order, full flow: place → staff accept (token) → customer adds more → accept → kitchen → ready →
-// collected → bill → paid. Also: reject with reason, spam limit, stall online order, dish photo upload.
+// collected → bill → paid. Also: reject with reason, spam limit, stall online order, dish photos (dish page and all-dishes screen, tap to enlarge).
 const { BASE, ctx, login, shot, check, db, run } = require("./helpers");
 
 const stepNow = async (page) => (await page.locator("[aria-current=step]").innerText()).trim();
@@ -169,4 +169,16 @@ run(async (browser) => {
   check("photo served as JPEG", res.status() === 200 && res.headers()["content-type"] === "image/jpeg");
   await cust.goto(BASE + "/");
   check("photo on website", (await cust.locator(`img[src="/photo/${item.photoId}"]`).count()) === 1);
+  // tap the photo to see it large
+  await cust.getByRole("button", { name: "Chicken Biryani", exact: true }).click();
+  await cust.getByRole("dialog", { name: "Chicken Biryani" }).waitFor();
+  console.log("ok  photo opens large");
+
+  // all-dishes photo screen
+  await owner.goto(BASE + "/manage/menu/photos");
+  await owner.waitForSelector("text=1 of");
+  await owner.getByLabel("Photo for Paneer 65").setInputFiles({ name: "paneer.png", mimeType: "image/png", buffer: Buffer.from(png, "base64") });
+  await owner.waitForSelector("text=2 of");
+  await shot(owner, "05-photos-screen");
+  console.log("ok  photo added from the all-dishes photo screen");
 });

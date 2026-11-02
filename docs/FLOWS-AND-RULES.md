@@ -146,13 +146,28 @@ Sent ─▶ Accepted ─▶ Cooking ─▶ Ready (for pickup) ─▶ Served / Co
 - At the restaurant they appear in **Orders → Takeaway** (🌐), at the stall on the **Tokens** board.
 - A stall token stays on the board until the food is **collected and** the bill is **paid**.
 
+## Languages
+
+- Customer screens (website, table QR page, order tracking) can be shown in **English, ಕನ್ನಡ or हिंदी**: the language menu
+  at the top. The choice is remembered on that phone for a year. English is the default.
+- Dish and category names show in the chosen language when a Kannada / Hindi name is set (Manage → Menu); otherwise English.
+- **Staff screens, bills, kitchen tickets and reports stay in English.** Pickup times and order items are stored in English,
+  so staff always read the same words whatever language the customer used.
+- Outlet details typed by the owner (address, opening hours) are shown as typed.
+
+## Dine-in vs takeaway
+
+- **Dine-in orders come only from the table QR** (it identifies the table). The website takes **takeaway** only.
+- The website says so above the menu and in the checkout: "Eating here? Scan the QR code on your table".
+
 ## Dish photos
 
-- Owner / manager add a photo per dish (Manage → Menu → dish → **Add photo**), from the camera or gallery.
+- Owner / manager add a photo per dish (Manage → Menu → dish → **Add photo**), from the camera or gallery,
+  or for all dishes one after another on **Manage → Menu → 📷 Photos** (shows how many dishes still have no photo).
 - The phone shrinks it (longest side 900 px, JPEG) before upload; the server accepts JPG / PNG / WebP up to 600 KB.
 - Photos are stored in the database and served from `/photo/<id>`; phones cache them, so they load once.
 - Replacing or removing a photo deletes the old one (photos are not history).
-- Photos show on the website and the table QR menu. Staff screens stay without photos (faster).
+- Photos show on the website and the table QR menu; tapping a photo shows it large. Staff screens stay without photos (faster).
   Dishes without a photo show a food icon chosen from the dish name.
 
 ## Stock
@@ -172,6 +187,8 @@ Sent ─▶ Accepted ─▶ Cooking ─▶ Ready (for pickup) ─▶ Served / Co
 
 - Staff log in with name + 4–6 digit PIN. PINs are stored hashed (scrypt), never in plain text.
 - 5 wrong PINs → that login is locked for 5 minutes.
+- Forgotten PIN: an owner or manager sets a new one in Manage → Staff. If nobody can log in (owner forgot the PIN), someone with
+  access to the server runs `npm run set-pin -- "Owner" <new PIN>` (see the user guide). There is no PIN reset by SMS or email.
 - A login lasts 16 hours. Turning off a staff login takes effect on their next screen load.
 - Every screen and every action checks the role on the server, and every database query is limited to the person's outlet.
 - Staff pages, the login page and table pages are hidden from search engines.

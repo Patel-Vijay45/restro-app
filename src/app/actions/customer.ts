@@ -9,6 +9,7 @@ import { revalidatePath } from "next/cache";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { priceCart, UserError, type CartLine } from "@/lib/orderOps";
+import { serverT } from "@/lib/lang";
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
@@ -28,7 +29,8 @@ async function run<T extends object>(fn: () => Promise<T>): Promise<Result<T>> {
 }
 
 async function checkedItems(outletId: string, cart: CartLine[]): Promise<Prisma.InputJsonValue> {
-  if (cart.reduce((s, l) => s + l.qty, 0) > MAX_ITEMS) throw new UserError("For big orders please call us.");
+  const tr = await serverT();
+  if (cart.reduce((s, l) => s + l.qty, 0) > MAX_ITEMS) throw new UserError(tr("err.bigOrder"));
   // Checks every dish is on this outlet's menu and not sold out.
   const lines = await db.$transaction((tx) => priceCart(tx, outletId, cart));
   return lines.map((l) => ({ menuItemId: l.menuItemId, qty: l.qty, note: l.note }));
@@ -37,21 +39,23 @@ async function checkedItems(outletId: string, cart: CartLine[]): Promise<Prisma.
 // ---------- Table QR ----------
 
 async function findTable(token: string) {
+  const tr = await serverT();
   const table = await db.diningTable.findUnique({ where: { qrToken: token }, include: { outlet: true } });
-  if (!table || !table.active) throw new UserError("This QR code is no longer valid. Please ask the waiter.");
+  if (!table || !table.active) throw new UserError(tr("err.qrInvalid"));
   const recent = await db.customerRequest.count({
     where: { tableId: table.id, createdAt: { gte: new Date(Date.now() - 10 * 60000) } },
   });
-  if (recent >= MAX_REQUESTS_PER_10_MIN) throw new UserError("Too many requests. The waiter will be with you shortly.");
+  if (recent >= MAX_REQUESTS_PER_10_MIN) throw new UserError(tr("err.tooManyTable"));
   return table;
 }
 
 export async function customerCall(token: string, kind: "CALL_WAITER" | "BILL"): Promise<Result> {
   return run(async () => {
+    const tr = await serverT();
     const table = await findTable(token);
     if (kind === "BILL") {
       const order = await db.order.findFirst({ where: { tableId: table.id, status: { in: ["OPEN", "BILLED"] } } });
-      if (!order) throw new UserError("There is no order on this table yet.");
+      if (!order) throw new UserError(tr("err.noOrderYet"));
     }
     // Pressing the button twice should not ring twice.
     const already = await db.customerRequest.findFirst({ where: { tableId: table.id, kind, status: "PENDING" } });
@@ -63,10 +67,11 @@ export async function customerCall(token: string, kind: "CALL_WAITER" | "BILL"):
 /** Customer at a table sends dishes (first order or "add more"). A waiter confirms before the kitchen sees it. */
 export async function customerOrder(token: string, cart: CartLine[]): Promise<Result> {
   return run(async () => {
+    const tr = await serverT();
     const table = await findTable(token);
     const pending = await db.customerRequest.count({ where: { tableId: table.id, kind: "ORDER", status: "PENDING" } });
     if (pending >= MAX_PENDING_ORDERS) {
-      throw new UserError("Your earlier order is still waiting for the waiter. Please wait a moment.");
+      throw new UserError(tr("err.waitingTable"));
     }
     const items = await checkedItems(table.outletId, cart);
     await db.customerRequest.create({ data: { outletId: table.outletId, tableId: table.id, kind: "ORDER", items } });
@@ -76,9 +81,9 @@ export async function customerOrder(token: string, cart: CartLine[]): Promise<Re
 
 // ---------- Website takeaway ----------
 
-function cleanPhone(phone: string): string {
+function cleanPhone(phone: string, tr: Awaited<ReturnType<typeof serverT>>): string {
   const digits = phone.replace(/\D/g, "").replace(/^(91|0)(?=\d{10}$)/, "");
-  if (!/^[6-9]\d{9}$/.test(digits)) throw new UserError("Enter a valid 10-digit mobile number");
+  if (!/^[6-9]\d{9}$/.test(digits)) throw new UserError(tr("err.mobile"));
   return digits;
 }
 
@@ -91,18 +96,19 @@ export async function placeOnlineOrder(input: {
   pickupTime: string;
 }): Promise<Result<{ trackToken: string }>> {
   return run(async () => {
+    const tr = await serverT();
     const outlet = await db.outlet.findFirst({ where: { id: input.outletId, showOnWebsite: true } });
-    if (!outlet) throw new UserError("This outlet is not taking online orders.");
+    if (!outlet) throw new UserError(tr("err.outletClosed"));
     const name = input.name.trim().slice(0, 60);
-    if (!name) throw new UserError("Enter your name");
-    const phone = cleanPhone(input.phone);
+    if (!name) throw new UserError(tr("err.name"));
+    const phone = cleanPhone(input.phone, tr);
 
     const recent = await db.customerRequest.count({
       where: { customerPhone: phone, createdAt: { gte: new Date(Date.now() - 10 * 60000) } },
     });
-    if (recent >= MAX_REQUESTS_PER_10_MIN) throw new UserError("Too many orders from this number. Please call us.");
+    if (recent >= MAX_REQUESTS_PER_10_MIN) throw new UserError(tr("err.tooManyNumber"));
     const waiting = await db.customerRequest.count({ where: { customerPhone: phone, kind: "ORDER", status: "PENDING" } });
-    if (waiting >= MAX_PENDING_ORDERS) throw new UserError("Your earlier order is still waiting for the restaurant. Please wait a moment.");
+    if (waiting >= MAX_PENDING_ORDERS) throw new UserError(tr("err.waitingOnline"));
 
     const items = await checkedItems(outlet.id, input.cart);
     const trackToken = randomBytes(12).toString("base64url");
@@ -124,20 +130,21 @@ export async function placeOnlineOrder(input: {
 /** "Add more" from the tracking page: another round for the same order and the same bill. */
 export async function addToOnlineOrder(trackToken: string, cart: CartLine[]): Promise<Result> {
   return run(async () => {
+    const tr = await serverT();
     const first = await db.customerRequest.findFirst({ where: { trackToken }, orderBy: { createdAt: "asc" } });
-    if (!first) throw new UserError("Order not found");
+    if (!first) throw new UserError(tr("err.notFound"));
     const order = await db.order.findUnique({ where: { trackToken } });
     if (order && (order.status === "PAID" || order.status === "CANCELLED")) {
-      throw new UserError("This order is closed. Please place a new order.");
+      throw new UserError(tr("err.closed"));
     }
     if (!order) {
       const open = await db.customerRequest.count({ where: { trackToken, status: "PENDING" } });
-      if (open === 0) throw new UserError("This order was not accepted. Please place a new order.");
+      if (open === 0) throw new UserError(tr("err.notAccepted"));
     }
     const pending = await db.customerRequest.count({ where: { trackToken, kind: "ORDER", status: "PENDING" } });
-    if (pending >= MAX_PENDING_ORDERS) throw new UserError("Your earlier items are still waiting for the restaurant. Please wait a moment.");
+    if (pending >= MAX_PENDING_ORDERS) throw new UserError(tr("err.waitingItems"));
     const recent = await db.customerRequest.count({ where: { trackToken, createdAt: { gte: new Date(Date.now() - 10 * 60000) } } });
-    if (recent >= MAX_REQUESTS_PER_10_MIN) throw new UserError("Too many requests. Please call us.");
+    if (recent >= MAX_REQUESTS_PER_10_MIN) throw new UserError(tr("err.tooMany"));
 
     const items = await checkedItems(first.outletId, cart);
     await db.customerRequest.create({

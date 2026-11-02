@@ -156,6 +156,8 @@ model Category {
   outletId  String
   outlet    Outlet     @relation(fields: [outletId], references: [id])
   name      String
+  nameKn    String     @default("")
+  nameHi    String     @default("")
   sortOrder Int        @default(0)
   active    Boolean    @default(true)
   items     MenuItem[]
@@ -168,6 +170,9 @@ model MenuItem {
   categoryId  String
   category    Category @relation(fields: [categoryId], references: [id])
   name        String
+  // optional names for customers who choose Kannada or Hindi (empty = use the English name)
+  nameKn      String   @default("")
+  nameHi      String   @default("")
   description String   @default("")
   price       Int // paise
   isVeg       Boolean

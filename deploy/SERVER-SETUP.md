@@ -39,6 +39,12 @@ sudo docker compose exec app tsx prisma/seed.ts
 
 The website is at `https://<your DOMAIN>`. The staff app is at `https://<your DOMAIN>/staff`: log in as Owner (PIN 1234) and change all PINs in Manage → Staff.
 
+## Forgot the owner PIN
+
+```bash
+sudo docker compose exec app tsx scripts/set-pin.ts "Owner" 5678
+```
+
 ## Update to the latest version
 
 ```bash

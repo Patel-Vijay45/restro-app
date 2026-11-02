@@ -4,11 +4,14 @@ import { dishIcon } from "@/lib/dishIcon";
 export default function DishThumb({
   photoId,
   name,
+  iconName,
   category,
   size = 64,
 }: {
   photoId?: string | null;
   name: string;
+  /** English name, used to pick the food icon when the shown name is Kannada / Hindi */
+  iconName?: string;
   category?: string;
   size?: number;
 }) {
@@ -32,7 +35,7 @@ export default function DishThumb({
       className="flex shrink-0 items-center justify-center rounded-xl bg-gold-soft"
       style={{ width: size, height: size, fontSize: size * 0.45 }}
     >
-      {dishIcon(name, category)}
+      {dishIcon(iconName ?? name, category)}
     </span>
   );
 }

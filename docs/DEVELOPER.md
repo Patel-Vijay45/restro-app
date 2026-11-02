@@ -47,6 +47,9 @@ src/
     stock.ts               stock moves: deduct for orders, return, purchase average cost
     counters.ts            bill / KOT / token numbers
     time.ts                India time helpers
+    i18n.ts                customer-screen text in English / Kannada / Hindi, t(lang, key), localName()
+    lang.ts                customer's language from the dfc-lang cookie (server)
+scripts/set-pin.ts         command-line PIN reset for when nobody can log in
 tests/e2e/                 browser tests (see tests/e2e/README.md)
 deploy/                    server (Docker) and free test (Vercel + Neon) guides
 ```
@@ -67,8 +70,11 @@ deploy/                    server (Docker) and free test (Vercel + Neon) guides
 10. **Keep history:** menu items, staff, tables and ingredients are turned off (`active: false`), not deleted. Orders and stock moves are never deleted.
 11. **Snapshot what a bill needs** (name, price, veg) onto the order item when ordering.
 12. **Screens poll** with `<AutoRefresh seconds={…} />` instead of websockets: simpler and free on our hosting.
-13. **Phone first:** test every screen at 390 px wide; buttons at least 44 px tall; plain words on screen.
-14. **Write for people:** error messages say what to do ("Enter a 10-digit mobile number"), not codes.
+13. **Customer text in three languages:** every word a customer sees goes through `t(lang, "key")` with the key added to
+    all three dictionaries in `src/lib/i18n.ts`. Dish/category names use `localName()`. Staff screens stay English.
+    Store data (pickup times, item names) in English.
+14. **Phone first:** test every screen at 390 px wide; buttons at least 44 px tall; plain words on screen.
+15. **Write for people:** error messages say what to do ("Enter a 10-digit mobile number"), not codes.
 
 ## Common tasks
 
