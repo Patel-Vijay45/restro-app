@@ -12,7 +12,7 @@ const LOCK_MINUTES = 5;
 
 export async function login(staffId: string, pin: string): Promise<{ error: string } | void> {
   const staff = await db.staff.findUnique({ where: { id: staffId } });
-  if (!staff || !staff.active) return { error: "Account not found" };
+  if (!staff || !staff.active || staff.role === "HELPER" || !staff.pinHash) return { error: "Account not found" };
 
   if (staff.lockedUntil && staff.lockedUntil > new Date()) {
     return { error: `Too many wrong PINs. Try again in ${LOCK_MINUTES} minutes.` };

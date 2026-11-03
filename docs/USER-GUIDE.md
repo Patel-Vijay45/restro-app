@@ -112,6 +112,9 @@ Token and KOT numbers start from 1 every day.
 
 ## Owner and manager
 
+After every save a **green message** appears at the top (e.g. "✓ Dal Fry saved"). If something is wrong a **red message**
+says what to fix. Buttons show "Saving…" while they work: wait for the message, don't tap twice.
+
 ### Menu (Manage → Menu)
 - **Sold out today:** turn the switch off next to the dish. It shows as *Sold out* and can't be ordered on staff phones, the table QR or the website. It stays off until you turn it back on.
 - **Change a price or name:** tap the dish → edit → Save. Old bills keep the old price.
@@ -132,11 +135,27 @@ Token and KOT numbers start from 1 every day.
 - **Customer view**: see what customers see for that table.
 - **New QR**: if a photo of a table's QR is being misused, this makes the old printed one stop working. Print it again.
 
-### Staff (Manage → Staff)
-- **Add staff**: name, job, PIN (4–6 digits). They are added to the outlet you are viewing.
-- **Forgot PIN**: open the person → type a new PIN → Save.
-- **Someone left**: open → *Turn off login*. Their old orders stay in the reports.
-- Managers can add waiters, kitchen staff and cashiers. Only the owner can add managers and owners.
+### Staff, attendance and salary (Manage → Staff)
+Three tabs: **👥 People**, **🗓️ Attendance**, **💰 Salary** (owner only).
+
+**People**
+- **+ Add staff**: name, job, PIN (4–6 digits), mobile, joining date and (owner) salary **per month** or **per day**.
+  Choose job **Helper** for people who don't use the app (cleaner, helper): no PIN needed.
+- Tap a person to change details, set a new PIN (forgot PIN), or **Mark as left** (turns off the login, pay stops after today).
+- Managers can add and change waiters, kitchen staff, cashiers and helpers of their outlet. Only the owner sees salaries.
+
+**Attendance** (every day, takes a minute)
+- Everyone is **present** unless you tap something else: **A** absent (unpaid), **½** half day, **L** paid leave. It saves at once.
+- ← → to fix an earlier day. On a person's page the month calendar shows every day; tap a day to change it.
+
+**Salary** (owner)
+- The month's sheet: for each person the days worked, what they earned, minus advances and salary already paid,
+  and **to pay**. **Pay** records the payment (cash / UPI / bank); the card then shows **Paid ✓**. You can pay part:
+  type a smaller amount.
+- **Advance during the month:** open the person → *Advance*, amount, cash / UPI → Save. It's taken off their salary.
+  **Bonus** adds to the salary, **Deduction** takes off (e.g. breakage).
+- A wrong entry: **Cancel** next to it and give the reason. It stays in the list, crossed out.
+- The current month shows pay *so far*. Pay the full month after it ends. Sales shows the advances and salary paid each day.
 
 ### Outlet settings (Manage → Outlet)
 Name and address on bills, phone, **UPI ID** (for payment QR codes), bill footer, printer paper (58 or 80 mm),

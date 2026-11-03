@@ -2,8 +2,8 @@ import { db } from "@/lib/db";
 import { CAN_MANAGE, requireStaff } from "@/lib/auth";
 import { saveCount } from "@/app/actions/stock";
 import { UNIT_LABEL, formatQty } from "@/lib/units";
-import Notice from "@/components/Notice";
 import BackHeader from "@/components/BackHeader";
+import SubmitButton from "@/components/SubmitButton";
 
 export default async function CountPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const me = await requireStaff(CAN_MANAGE);
@@ -12,7 +12,6 @@ export default async function CountPage({ searchParams }: { searchParams: Promis
   return (
     <div>
       <BackHeader title="Stock count" href="/stock" />
-      <Notice error={error} />
       <p className="mb-3 text-sm text-muted">
         Weigh or count what is actually in the kitchen and enter it. Leave a box empty to skip it. Differences are saved, so you can
         see what went missing.
@@ -30,7 +29,7 @@ export default async function CountPage({ searchParams }: { searchParams: Promis
             </label>
           ))}
         </div>
-        <button className="btn-primary sticky bottom-20 w-full shadow-lg">Save count</button>
+        <SubmitButton className="btn-primary sticky bottom-20 w-full shadow-lg">Save count</SubmitButton>
       </form>
     </div>
   );

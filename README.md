@@ -32,6 +32,7 @@ Everything works from a phone. A PC or tablet is optional.
 | Owner / manager | **Stock** | Ingredients per outlet with live stock (kg / L / pcs) and *running low* list (red badge on the Stock tab). **Purchase** (quantity, amount paid, supplier: updates the average cost), **Wastage** (with reason), **Count** (enter what is really there; the difference is saved). History of every change per ingredient. |
 | Owner / manager | **Manage → Menu → 📷 Photos** | Real **photo for every dish** from the phone camera or gallery (made small automatically), with a count of dishes still missing one. Kannada / Hindi dish names inside each dish. |
 | Owner / manager | **Manage → Menu → dish → Recipe** | How much of each ingredient one portion uses (g / ml / pcs). Shows cost to make, selling price and **food cost %**. |
+| Owner / manager | **Manage → Staff** | People (jobs, PINs, phone, joining date; **helpers** without app login), **attendance** (everyone present unless marked absent / half day / paid leave), and for the owner **salaries**: per month or per day, advances, bonus, deductions, monthly **salary sheet** with *Pay*. |
 | Owner / manager | **Sales** | Day's sales, bills, average bill, cash vs UPI vs card, food cost of paid bills, purchases, wastage, stock missing in counts, top dishes, **removed items and cancelled orders with reasons**, both outlets combined. |
 
 Safety built in: nothing a customer orders reaches the kitchen until a waiter confirms it, so an old photo of a QR can't

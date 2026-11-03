@@ -2,6 +2,14 @@
 
 Newest first. Add an entry for every change that people will notice.
 
+## 2026-11-03: Staff and salary, save feedback
+- **Every admin save now shows a message** at the top ("✓ … saved" in green, problems in red) and buttons show "Saving…".
+- **Staff**: phone, joining date, salary per month or per day; **Helper** job for staff without an app login;
+  *Mark as left* stops pay after that day.
+- **Attendance**: daily screen (everyone present unless marked absent / half day / paid leave) and a month calendar per person.
+- **Salary (owner only)**: advances, bonus, deductions, cancel with reason; monthly salary sheet with what each person
+  earned and is still owed, and a *Pay* button. Sales report shows staff pay given that day.
+
 ## 2026-11-02: Languages, photos screen, dine-in hint
 - Customer screens (website, table QR, order tracking) in **English, Kannada and Hindi**; Kannada / Hindi dish and category
   names (sample menu included; `npm run db:seed` adds them to an existing database).

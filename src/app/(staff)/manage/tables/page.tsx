@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { CAN_MANAGE, requireStaff } from "@/lib/auth";
 import Link from "next/link";
 import { resetTableQr, saveTable, setTableActive } from "@/app/actions/manage";
-import Notice from "@/components/Notice";
+import SubmitButton from "@/components/SubmitButton";
 
 export default async function TablesAdminPage({ searchParams }: { searchParams: Promise<{ error?: string; reset?: string }> }) {
   const me = await requireStaff(CAN_MANAGE);
@@ -15,7 +15,6 @@ export default async function TablesAdminPage({ searchParams }: { searchParams: 
 
   return (
     <div>
-      <Notice error={error} success={reset ? "New QR made. Print it again; the old one no longer works." : undefined} />
       <div className="card mb-4 flex items-center justify-between gap-3 p-3">
         <p className="text-sm text-muted">Each table has its own QR. Customers scan it to see the menu, order, call the waiter and pay.</p>
         <Link href="/print/qr" className="btn-gold shrink-0 text-sm">
@@ -30,7 +29,7 @@ export default async function TablesAdminPage({ searchParams }: { searchParams: 
               <input name="name" defaultValue={t.name} className="input w-20" aria-label="Table name" />
               <input name="seats" defaultValue={t.seats} inputMode="numeric" className="input w-16" aria-label="Seats" />
               <span className="text-sm text-muted">seats</span>
-              <button className="btn-outline ml-auto min-h-9 px-3 text-sm">Save</button>
+              <SubmitButton className="btn-outline ml-auto min-h-9 px-3 text-sm">Save</SubmitButton>
             </form>
             <div className="mt-2 flex gap-4 text-sm text-muted">
               <Link href={`/t/${t.qrToken}`} className="underline" target="_blank">
@@ -38,12 +37,12 @@ export default async function TablesAdminPage({ searchParams }: { searchParams: 
               </Link>
               <form action={resetTableQr}>
                 <input type="hidden" name="id" value={t.id} />
-                <button className="underline">New QR</button>
+                <SubmitButton className="underline">New QR</SubmitButton>
               </form>
               <form action={setTableActive} className="ml-auto">
                 <input type="hidden" name="id" value={t.id} />
                 <input type="hidden" name="active" value={String(!t.active)} />
-                <button className="underline">{t.active ? "Hide table" : "Show table"}</button>
+                <SubmitButton className="underline">{t.active ? "Hide table" : "Show table"}</SubmitButton>
               </form>
             </div>
           </div>
@@ -53,7 +52,7 @@ export default async function TablesAdminPage({ searchParams }: { searchParams: 
         <input name="name" placeholder={`T${tables.length + 1}`} className="input w-20" aria-label="New table name" />
         <input name="seats" defaultValue={4} inputMode="numeric" className="input w-16" aria-label="Seats" />
         <span className="text-sm text-muted">seats</span>
-        <button className="btn-primary ml-auto min-h-9 text-sm">+ Add table</button>
+        <SubmitButton className="btn-primary ml-auto min-h-9 text-sm">+ Add table</SubmitButton>
       </form>
     </div>
   );

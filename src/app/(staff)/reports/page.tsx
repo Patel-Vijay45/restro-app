@@ -24,6 +24,21 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     }),
   ]);
   const stockValue = (t: string) => stockByType.find((r) => r.type === t)?._sum.value ?? 0;
+  // Owner only: money given to staff on this day (advances and salary, not cancelled entries).
+  const staffPaid =
+    me.role === "OWNER"
+      ? await db.staffPayment.groupBy({
+          by: ["kind"],
+          where: {
+            kind: { in: ["ADVANCE", "SALARY"] },
+            voided: false,
+            createdAt: { gte: from, lt: to },
+            staff: allOutlets ? {} : { outletId: me.outletId },
+          },
+          _sum: { amount: true },
+        })
+      : [];
+  const staffSum = (k: string) => staffPaid.find((r) => r.kind === k)?._sum.amount ?? 0;
   // Ingredient cost of the dishes on bills paid this day (from the recipe amounts taken out of stock).
   const foodCostRows = await db.$queryRaw<{ v: bigint | null }[]>`
     SELECT SUM(CASE WHEN m.type = 'SALE' THEN m.value ELSE -m.value END) AS v
@@ -136,6 +151,17 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           );
         })()}
       </Section>
+
+      {me.role === "OWNER" && (
+        <Section title="Staff pay given">
+          <Row label="Advances" value={rupees(staffSum("ADVANCE"))} />
+          <Row label="Salary paid" value={rupees(staffSum("SALARY"))} />
+          <Link href="/manage/staff/salary" className="flex justify-between p-3 text-sm">
+            <span>Salary sheet</span>
+            <span className="font-semibold">→</span>
+          </Link>
+        </Section>
+      )}
 
       <Section title="Top dishes">
         {soldItems.length === 0 ? (

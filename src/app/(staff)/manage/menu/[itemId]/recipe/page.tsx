@@ -5,7 +5,6 @@ import { CAN_MANAGE, requireStaff } from "@/lib/auth";
 import { rupees } from "@/lib/money";
 import { UNIT_LABEL } from "@/lib/units";
 import BackHeader from "@/components/BackHeader";
-import Notice from "@/components/Notice";
 import RecipeEditor from "./RecipeEditor";
 
 export default async function RecipePage({
@@ -28,7 +27,6 @@ export default async function RecipePage({
   return (
     <div>
       <BackHeader title={`Recipe: ${item.name}`} href={`/manage/menu/${item.id}`} />
-      <Notice error={sp.error} success={sp.saved ? "Recipe saved. Stock will go down by these amounts for every portion ordered." : undefined} />
       <p className="mb-3 text-sm text-muted">
         How much of each ingredient <b>one portion</b> uses. Selling price {rupees(item.price)}.
       </p>

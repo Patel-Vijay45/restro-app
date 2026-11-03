@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { CAN_MANAGE, requireStaff } from "@/lib/auth";
 import { removeItem, saveItem } from "@/app/actions/manage";
-import Notice from "@/components/Notice";
 import PhotoUpload from "./PhotoUpload";
+import SubmitButton from "@/components/SubmitButton";
 
 export default async function EditItemPage({
   params,
@@ -29,7 +29,6 @@ export default async function EditItemPage({
         </Link>
         <h1 className="text-xl font-bold">{isNew ? "New dish" : `Edit ${item!.name}`}</h1>
       </div>
-      <Notice error={error} />
       {item && <PhotoUpload itemId={item.id} name={item.name} photoId={item.photoId} />}
       <form action={saveItem} className="card space-y-4 p-4">
         {item && <input type="hidden" name="id" value={item.id} />}
@@ -77,7 +76,7 @@ export default async function EditItemPage({
           <span className="label">Description (optional, shown to customers later)</span>
           <input name="description" defaultValue={item?.description} className="input" />
         </label>
-        <button className="btn-primary w-full">Save</button>
+        <SubmitButton className="btn-primary w-full">Save</SubmitButton>
       </form>
       {item && (
         <Link href={`/manage/menu/${item.id}/recipe`} className="btn-outline mt-4 w-full">
@@ -87,7 +86,7 @@ export default async function EditItemPage({
       {item && (
         <form action={removeItem} className="mt-6 text-center">
           <input type="hidden" name="id" value={item.id} />
-          <button className="text-sm font-medium text-nonveg underline">Remove from menu</button>
+          <SubmitButton className="text-sm font-medium text-nonveg underline">Remove from menu</SubmitButton>
         </form>
       )}
     </div>

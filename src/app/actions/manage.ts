@@ -2,19 +2,24 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import type { Role } from "@prisma/client";
 import { db } from "@/lib/db";
 import { CAN_MANAGE, requireStaff } from "@/lib/auth";
 import { parseRupees } from "@/lib/money";
-import { hashPin, isValidPin } from "@/lib/pin";
 
 function text(form: FormData, key: string, max = 80): string {
   return String(form.get(key) ?? "").trim().slice(0, max);
 }
 
+/** Back to the page with an error (shown as a red message at the top). */
 function back(path: string, error?: string): never {
   revalidatePath("/", "layout");
   redirect(error ? `${path}${path.includes("?") ? "&" : "?"}error=${encodeURIComponent(error)}` : path);
+}
+
+/** Back to the page with a green "✓ saved" message at the top. */
+function saved(path: string, message: string): never {
+  revalidatePath("/", "layout");
+  redirect(`${path}${path.includes("?") ? "&" : "?"}ok=${encodeURIComponent(message)}`);
 }
 
 // ---------- Menu ----------
@@ -52,14 +57,14 @@ export async function saveItem(form: FormData) {
   } else {
     await db.menuItem.create({ data: { ...data, outletId: me.outletId, sortOrder: 999 } });
   }
-  back("/manage/menu");
+  saved("/manage/menu", id ? `${name} saved` : `${name} added to the menu`);
 }
 
 export async function removeItem(form: FormData) {
   const me = await requireStaff(CAN_MANAGE);
   // Kept in the database so old bills still show it; just hidden from the menu.
   await db.menuItem.updateMany({ where: { id: text(form, "id"), outletId: me.outletId }, data: { active: false } });
-  back("/manage/menu");
+  saved("/manage/menu", "Dish removed from the menu");
 }
 
 export async function saveCategory(form: FormData) {
@@ -74,7 +79,7 @@ export async function saveCategory(form: FormData) {
     const count = await db.category.count({ where: { outletId: me.outletId } });
     await db.category.create({ data: { outletId: me.outletId, ...names, sortOrder: count } });
   }
-  back("/manage/menu");
+  saved("/manage/menu", id ? "Category saved" : `Category ${name} added`);
 }
 
 // ---------- Tables ----------
@@ -94,7 +99,7 @@ export async function saveTable(form: FormData) {
     const count = await db.diningTable.count({ where: { outletId: me.outletId } });
     await db.diningTable.create({ data: { outletId: me.outletId, name, seats, sortOrder: count } });
   }
-  back("/manage/tables");
+  saved("/manage/tables", id ? `Table ${name} saved` : `Table ${name} added`);
 }
 
 export async function setTableActive(form: FormData) {
@@ -106,60 +111,10 @@ export async function setTableActive(form: FormData) {
     if (running) back("/manage/tables", "This table has a running order");
   }
   await db.diningTable.updateMany({ where: { id, outletId: me.outletId }, data: { active } });
-  back("/manage/tables");
+  saved("/manage/tables", active ? "Table is shown again" : "Table hidden");
 }
 
-// ---------- Staff ----------
-
-const MANAGER_CAN_ADD: Role[] = ["CASHIER", "WAITER", "KITCHEN"];
-
-export async function saveStaff(form: FormData) {
-  const me = await requireStaff(CAN_MANAGE);
-  const id = text(form, "id");
-  const name = text(form, "name", 40);
-  const role = text(form, "role") as Role;
-  const pin = text(form, "pin", 6);
-  const path = "/manage/staff";
-
-  if (!name) back(path, "Enter a name");
-  if (!["OWNER", "MANAGER", "CASHIER", "WAITER", "KITCHEN"].includes(role)) back(path, "Choose a role");
-  if (me.role !== "OWNER" && !MANAGER_CAN_ADD.includes(role)) back(path, "Only the owner can add owners or managers");
-  if (!id && !isValidPin(pin)) back(path, "PIN must be 4 to 6 digits");
-  if (id && pin && !isValidPin(pin)) back(path, "PIN must be 4 to 6 digits");
-
-  // Owners work everywhere; everyone else belongs to the outlet being managed.
-  const outletId = role === "OWNER" ? null : me.outletId;
-
-  if (id) {
-    const existing = await db.staff.findUnique({ where: { id } });
-    if (!existing) back(path, "Staff not found");
-    if (me.role !== "OWNER" && (existing.outletId !== me.outletId || !MANAGER_CAN_ADD.includes(existing.role))) {
-      back(path, "You can't change this person");
-    }
-    if (existing.id === me.staffId && role !== me.role) back(path, "You can't change your own role");
-    await db.staff.update({
-      where: { id },
-      data: { name, role, outletId, ...(pin ? { pinHash: hashPin(pin), failedPins: 0, lockedUntil: null } : {}) },
-    });
-  } else {
-    await db.staff.create({ data: { name, role, outletId, pinHash: hashPin(pin) } });
-  }
-  back(path);
-}
-
-export async function setStaffActive(form: FormData) {
-  const me = await requireStaff(CAN_MANAGE);
-  const id = text(form, "id");
-  const active = form.get("active") === "true";
-  const target = await db.staff.findUnique({ where: { id } });
-  if (!target) back("/manage/staff", "Staff not found");
-  if (target.id === me.staffId) back("/manage/staff", "You can't turn off your own login");
-  if (me.role !== "OWNER" && (target.outletId !== me.outletId || !MANAGER_CAN_ADD.includes(target.role))) {
-    back("/manage/staff", "You can't change this person");
-  }
-  await db.staff.update({ where: { id }, data: { active } });
-  back("/manage/staff");
-}
+// Staff, attendance and pay: see actions/staff.ts
 
 // ---------- Outlet ----------
 
@@ -198,7 +153,7 @@ export async function saveOutlet(form: FormData) {
       showOnWebsite: form.get("showOnWebsite") === "on",
     },
   });
-  back(`${path}?saved=1`);
+  saved(path, "Outlet settings saved");
 }
 
 /** New QR secret for a table: the old printed QR stops working (use if a photo of it is being misused). */
@@ -209,5 +164,5 @@ export async function resetTableQr(form: FormData) {
     where: { id: text(form, "id"), outletId: me.outletId },
     data: { qrToken: randomBytes(12).toString("base64url") },
   });
-  back("/manage/tables?reset=1");
+  saved("/manage/tables", "New QR made. Print it again: the old one no longer works.");
 }

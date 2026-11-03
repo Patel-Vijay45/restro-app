@@ -1,102 +1,81 @@
+import Link from "next/link";
 import { db } from "@/lib/db";
 import { CAN_MANAGE, requireStaff } from "@/lib/auth";
-import { saveStaff, setStaffActive } from "@/app/actions/manage";
-import Notice from "@/components/Notice";
+import { rupees } from "@/lib/money";
+import { indiaDay } from "@/lib/time";
+import StaffTabs from "./StaffTabs";
+import { ROLE_LABEL } from "@/lib/staffLabels";
 
-const ROLES = [
-  { value: "WAITER", label: "Waiter: takes table orders" },
-  { value: "KITCHEN", label: "Kitchen: kitchen screen only" },
-  { value: "CASHIER", label: "Cashier: billing and payments" },
-  { value: "MANAGER", label: "Manager: everything in this outlet" },
-  { value: "OWNER", label: "Owner: everything, all outlets" },
-];
 
-export default async function StaffAdminPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+const TODAY_LABEL: Record<string, { text: string; className: string }> = {
+  ABSENT: { text: "Absent today", className: "bg-billed text-nonveg" },
+  HALF_DAY: { text: "Half day today", className: "bg-busy" },
+  PAID_LEAVE: { text: "On leave today", className: "bg-gold-soft" },
+};
+
+export default async function StaffListPage() {
   const me = await requireStaff(CAN_MANAGE);
-  const { error } = await searchParams;
+  const owner = me.role === "OWNER";
   const staff = await db.staff.findMany({
-    where: me.role === "OWNER" ? {} : { outletId: me.outletId },
-    include: { outlet: { select: { name: true } } },
-    orderBy: [{ active: "desc" }, { role: "asc" }, { name: "asc" }],
+    where: owner ? {} : { outletId: me.outletId },
+    include: {
+      outlet: { select: { name: true } },
+      attendance: { where: { day: indiaDay() }, select: { status: true } },
+    },
+    orderBy: [{ role: "asc" }, { name: "asc" }],
   });
-  const roles = me.role === "OWNER" ? ROLES : ROLES.filter((r) => ["WAITER", "KITCHEN", "CASHIER"].includes(r.value));
+  const active = staff.filter((s) => s.active);
+  const left = staff.filter((s) => !s.active);
+
+  const Row = ({ s }: { s: (typeof staff)[number] }) => {
+    const today = s.attendance[0]?.status;
+    const badge = today && TODAY_LABEL[today];
+    return (
+      <Link href={`/manage/staff/${s.id}`} className="flex items-center gap-3 p-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gold-soft font-bold">{s.name.slice(0, 1)}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-semibold">{s.name}</span>
+          <span className="block text-xs text-muted">
+            {ROLE_LABEL[s.role]} · {s.outlet?.name ?? "All outlets"}
+            {s.phone && ` · ${s.phone}`}
+          </span>
+          {badge && <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${badge.className}`}>{badge.text}</span>}
+        </span>
+        {owner && s.role !== "OWNER" && (
+          <span className="text-right text-sm">
+            {s.salary ? rupees(s.salary) : <span className="text-gold">set pay</span>}
+            <span className="block text-xs text-muted">{s.salary ? (s.salaryType === "DAILY" ? "per day" : "per month") : ""}</span>
+          </span>
+        )}
+        <span className="text-muted">›</span>
+      </Link>
+    );
+  };
 
   return (
     <div>
-      <Notice error={error} />
-      <p className="mb-3 text-sm text-muted">New staff are added to the outlet you are viewing now.</p>
-      <div className="mb-4 space-y-2">
-        {staff.map((s) => (
-          <details key={s.id} className={`card ${s.active ? "" : "opacity-60"}`}>
-            <summary className="flex cursor-pointer list-none items-center justify-between p-3">
-              <span>
-                <span className="font-semibold">{s.name}</span>
-                <span className="block text-xs text-muted">
-                  {s.role.toLowerCase()} · {s.outlet?.name ?? "All outlets"}
-                  {!s.active && " · turned off"}
-                </span>
-              </span>
-              <span className="text-sm text-muted">Edit</span>
-            </summary>
-            <div className="border-t border-line p-3">
-              <form action={saveStaff} className="space-y-3">
-                <input type="hidden" name="id" value={s.id} />
-                <StaffFields roles={roles} name={s.name} role={s.role} pinOptional />
-                <button className="btn-primary w-full">Save</button>
-              </form>
-              {s.id !== me.staffId && (
-                <form action={setStaffActive} className="mt-3 text-center">
-                  <input type="hidden" name="id" value={s.id} />
-                  <input type="hidden" name="active" value={String(!s.active)} />
-                  <button className={`text-sm underline ${s.active ? "text-nonveg" : "text-veg"}`}>
-                    {s.active ? "Turn off login (left the job)" : "Turn login back on"}
-                  </button>
-                </form>
-              )}
-            </div>
-          </details>
+      <StaffTabs active="people" owner={owner} />
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-sm text-muted">{active.length} people working</p>
+        <Link href="/manage/staff/new" className="btn-primary min-h-9 text-sm">
+          + Add staff
+        </Link>
+      </div>
+      <div className="card mb-5 divide-y divide-line">
+        {active.map((s) => (
+          <Row key={s.id} s={s} />
         ))}
       </div>
-      <form action={saveStaff} className="card space-y-3 p-4">
-        <h2 className="font-bold">Add staff</h2>
-        <StaffFields roles={roles} />
-        <button className="btn-primary w-full">Add</button>
-      </form>
+      {left.length > 0 && (
+        <>
+          <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-muted">Left / turned off ({left.length})</h2>
+          <div className="card divide-y divide-line opacity-70">
+            {left.map((s) => (
+              <Row key={s.id} s={s} />
+            ))}
+          </div>
+        </>
+      )}
     </div>
-  );
-}
-
-function StaffFields({
-  roles,
-  name,
-  role,
-  pinOptional,
-}: {
-  roles: typeof ROLES;
-  name?: string;
-  role?: string;
-  pinOptional?: boolean;
-}) {
-  return (
-    <>
-      <label className="block">
-        <span className="label">Name</span>
-        <input name="name" required defaultValue={name} className="input" />
-      </label>
-      <label className="block">
-        <span className="label">Role</span>
-        <select name="role" defaultValue={role ?? "WAITER"} className="input">
-          {roles.map((r) => (
-            <option key={r.value} value={r.value}>
-              {r.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="block">
-        <span className="label">{pinOptional ? "New PIN (leave empty to keep)" : "PIN (4–6 digits)"}</span>
-        <input name="pin" inputMode="numeric" pattern="\d{4,6}" required={!pinOptional} className="input" autoComplete="off" />
-      </label>
-    </>
   );
 }

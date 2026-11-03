@@ -28,7 +28,9 @@ Each outlet has its own menu, prices, tables, staff, stock, bill numbers and set
 | Menu, dish photos, recipes, tables, QR codes, outlet settings | ✓ | ✓ | – | – | – |
 | Stock: purchase, wastage, count, ingredients | ✓ | ✓ | – | – | – |
 | Sales report | ✓ | ✓ | – | – | – |
-| Add / change waiters, kitchen, cashiers | ✓ | ✓ (own outlet) | – | – | – |
+| Add / change waiters, kitchen, cashiers, helpers | ✓ | ✓ (own outlet) | – | – | – |
+| Mark attendance | ✓ | ✓ (own outlet) | – | – | – |
+| See or set salaries, give advances / bonus / deductions, pay salary, salary sheet | ✓ | – | – | – | – |
 | Add / change managers and owners | ✓ | – | – | – | – |
 
 \* At the stall (counter outlet) the cashier also marks tokens ready / collected.
@@ -182,6 +184,23 @@ Sent ─▶ Accepted ─▶ Cooking ─▶ Ready (for pickup) ─▶ Served / Co
 - **Count** stores the difference between counted and system stock; the value of missing stock shows in Sales.
 - **Low stock**: at or below the warning level → listed first in Stock, red badge on the Stock tab, count in Sales.
 - **Food cost** (Sales) = ingredient cost of dishes on bills **paid** that day. Recipe screen shows cost ÷ price.
+
+## Staff, attendance and salary
+
+- **Helper** is a job without an app login (cleaner, helper, cook without a phone): no PIN, not on the login screen,
+  only attendance and salary.
+- Each person has: phone, **joined on** date, and **salary per month** or **wage per day** (owner only).
+  **Mark as left** turns the login off and sets the leaving date: pay stops after that day. History is kept.
+- **Attendance:** days without a mark count as **present**. Staff only mark **Absent** (unpaid), **Half day** (half paid)
+  or **Paid leave** (paid). Marking again changes the mark. Days before joining, after leaving, or in the future are not counted.
+- **Pay for a month** (`src/lib/payroll.ts`):
+  - payable days = present + paid leave + half days ÷ 2
+  - monthly salary: salary × payable days ÷ days in the month · daily wage: wage × payable days
+  - **still to pay** = earned + bonus − deductions − advances − salary already paid (negative = paid extra, counts as advance)
+  - The current month counts days up to today ("so far").
+- **Money entries** belong to a salary month: **Advance** and **Salary paid** (cash / UPI / bank), **Bonus** and **Deduction**
+  (change what was earned). Entries are never deleted: the owner can **cancel** one with a reason; it stays crossed out.
+- Owners are not on the salary sheet. The owner's Sales report shows advances and salary paid that day.
 
 ## Login and security
 

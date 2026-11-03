@@ -24,4 +24,5 @@ Read before changing anything:
 - Before committing: `npm run lint && npm test && npm run build && npm run test:e2e` all pass.
 - Never run `prisma migrate reset` or wipe a database that isn't the `_e2e` test database. Never edit a committed migration.
 - Phone first: check new screens at 390 px wide.
+- Every staff form: `<SubmitButton>` and a redirect with `?ok=` / `?error=` message (shown by `<Toast>`). Salaries and staff payments are owner-only.
 - Customer-facing text (website, `/t/`, `/track/`) goes through `t(lang, key)` in `src/lib/i18n.ts`, in English, Kannada and Hindi. Staff screens stay English.

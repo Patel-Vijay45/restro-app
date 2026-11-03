@@ -3,29 +3,16 @@ import { db } from "@/lib/db";
 import { CAN_MANAGE, requireStaff } from "@/lib/auth";
 import { rupees } from "@/lib/money";
 import { costOf, formatQty } from "@/lib/units";
-import Notice from "@/components/Notice";
 
-export default async function StockPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string; saved?: string; counted?: string; changed?: string }>;
-}) {
+export default async function StockPage() {
   const me = await requireStaff(CAN_MANAGE);
-  const sp = await searchParams;
   const ingredients = await db.ingredient.findMany({ where: { outletId: me.outletId, active: true }, orderBy: { name: "asc" } });
   const low = ingredients.filter((i) => i.stock <= i.lowStock);
   const ok = ingredients.filter((i) => i.stock > i.lowStock);
   const value = ingredients.reduce((s, i) => s + costOf(Math.max(0, i.stock), i.costPerUnit), 0);
 
-  const success = sp.saved
-    ? `Added ${sp.saved}.`
-    : sp.counted
-      ? `Count saved: ${sp.counted} checked, ${sp.changed} different from the system (see each ingredient's history).`
-      : undefined;
-
   return (
     <div>
-      <Notice error={sp.error} success={success} />
       <div className="mb-4 flex items-end justify-between">
         <div>
           <h1 className="text-xl font-bold">Stock</h1>

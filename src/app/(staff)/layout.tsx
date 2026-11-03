@@ -5,6 +5,8 @@ import { logout } from "@/app/actions/auth";
 import BottomNav, { type NavLink } from "@/components/BottomNav";
 import OutletSwitcher from "@/components/OutletSwitcher";
 import RequestBanner from "@/components/RequestBanner";
+import Toast from "@/components/Toast";
+import { Suspense } from "react";
 import { lowStockCount } from "@/lib/ingredients";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +51,9 @@ export default async function StaffLayout({ children }: { children: React.ReactN
         </div>
       </header>
       <RequestBanner ids={requestIds} />
+      <Suspense>
+        <Toast />
+      </Suspense>
       <main className="mx-auto max-w-3xl px-4 pt-4">{children}</main>
       <BottomNav links={links} />
     </div>

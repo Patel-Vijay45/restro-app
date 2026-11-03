@@ -3,10 +3,10 @@ import { db } from "@/lib/db";
 import { CAN_MANAGE, requireStaff } from "@/lib/auth";
 import { rupees } from "@/lib/money";
 import { saveCategory } from "@/app/actions/manage";
-import Notice from "@/components/Notice";
 import VegMark from "@/components/VegMark";
 import DishThumb from "@/components/DishThumb";
 import AvailableSwitch from "./AvailableSwitch";
+import SubmitButton from "@/components/SubmitButton";
 
 export default async function MenuAdminPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const me = await requireStaff(CAN_MANAGE);
@@ -27,7 +27,6 @@ export default async function MenuAdminPage({ searchParams }: { searchParams: Pr
 
   return (
     <div>
-      <Notice error={error} />
       <div className="mb-3 flex items-center justify-between">
         <p className="text-sm text-muted">
           Tap a dish to change it or add a photo. Turn a switch off when it runs out today.{soldOut > 0 && <b className="text-nonveg"> {soldOut} sold out.</b>}
@@ -53,7 +52,7 @@ export default async function MenuAdminPage({ searchParams }: { searchParams: Pr
               <input name="name" defaultValue={c.name} className="input col-span-2" aria-label="Category name" />
               <input name="nameKn" lang="kn" defaultValue={c.nameKn} className="input" placeholder="ಕನ್ನಡ" aria-label="Category name in Kannada" />
               <input name="nameHi" lang="hi" defaultValue={c.nameHi} className="input" placeholder="हिंदी" aria-label="Category name in Hindi" />
-              <button className="btn-outline col-span-2">Save</button>
+              <SubmitButton className="btn-outline col-span-2">Save</SubmitButton>
             </form>
           </details>
           <div className="card divide-y divide-line">
@@ -78,7 +77,7 @@ export default async function MenuAdminPage({ searchParams }: { searchParams: Pr
 
       <form action={saveCategory} className="card flex gap-2 p-3">
         <input name="name" placeholder="New category (e.g. Soups)" className="input" />
-        <button className="btn-outline shrink-0">Add</button>
+        <SubmitButton className="btn-outline shrink-0">Add</SubmitButton>
       </form>
     </div>
   );

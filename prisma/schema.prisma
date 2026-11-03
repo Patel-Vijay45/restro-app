@@ -22,6 +22,32 @@ enum Role {
   CASHIER // billing and payments
   WAITER // take table orders
   KITCHEN // kitchen screen only
+  HELPER // no app login (cleaner, helper, cook without a phone): only for attendance and salary
+}
+
+enum SalaryType {
+  MONTHLY // salary per month, paid for the days worked
+  DAILY // wage per day worked
+}
+
+enum AttendanceStatus {
+  PRESENT
+  HALF_DAY
+  ABSENT // unpaid
+  PAID_LEAVE
+}
+
+enum StaffPaymentKind {
+  ADVANCE // money given during the month, taken off the salary
+  SALARY // salary paid
+  BONUS // added to what the person earned
+  DEDUCTION // taken off what the person earned (e.g. breakage)
+}
+
+enum MoneyMode {
+  CASH
+  UPI
+  BANK
 }
 
 enum OrderType {
@@ -127,11 +153,23 @@ model Staff {
   lockedUntil DateTime?
   createdAt   DateTime  @default(now())
 
-  requestsHandled CustomerRequest[]
-  stockMoves      StockMove[]
-  ordersCreated   Order[]           @relation("OrderCreatedBy")
-  kotsCreated     Kot[]             @relation("KotCreatedBy")
-  payments        Payment[]
+  // staff details and pay (pay is visible to the owner only)
+  phone      String     @default("")
+  joinedOn   String     @default("") // "YYYY-MM-DD"; days before it are not paid
+  leftOn     String     @default("") // "YYYY-MM-DD"; set when the login is turned off; days after it are not paid
+  salaryType SalaryType @default(MONTHLY)
+  salary     Int        @default(0) // paise per month (MONTHLY) or per day (DAILY)
+  note       String     @default("")
+
+  attendance       Attendance[]      @relation("AttendanceOf")
+  attendanceMarked Attendance[]      @relation("AttendanceMarkedBy")
+  staffPayments    StaffPayment[]    @relation("PaymentTo")
+  staffPaymentsBy  StaffPayment[]    @relation("PaymentBy")
+  requestsHandled  CustomerRequest[]
+  stockMoves       StockMove[]
+  ordersCreated    Order[]           @relation("OrderCreatedBy")
+  kotsCreated      Kot[]             @relation("KotCreatedBy")
+  payments         Payment[]
 }
 
 model DiningTable {
@@ -386,4 +424,41 @@ model StockMove {
   @@index([ingredientId, createdAt])
   @@index([outletId, type, createdAt])
   @@index([orderItemId])
+}
+
+// ---------- Staff attendance and pay ----------
+
+// One row per person per day that is NOT a normal present day (days without a row count as present).
+model Attendance {
+  id         String           @id @default(cuid())
+  staffId    String
+  staff      Staff            @relation("AttendanceOf", fields: [staffId], references: [id])
+  day        String // "YYYY-MM-DD" (India date)
+  status     AttendanceStatus
+  note       String           @default("")
+  markedById String?
+  markedBy   Staff?           @relation("AttendanceMarkedBy", fields: [markedById], references: [id])
+  updatedAt  DateTime         @updatedAt
+
+  @@unique([staffId, day])
+}
+
+// Money given to or adjusted for a staff member. Never deleted: mistakes are voided with a reason.
+model StaffPayment {
+  id          String           @id @default(cuid())
+  staffId     String
+  staff       Staff            @relation("PaymentTo", fields: [staffId], references: [id])
+  kind        StaffPaymentKind
+  amount      Int // paise, always positive
+  month       String // "YYYY-MM": the salary month it belongs to
+  mode        MoneyMode? // how cash moved (ADVANCE / SALARY)
+  note        String           @default("")
+  voided      Boolean          @default(false)
+  voidReason  String           @default("")
+  createdById String
+  createdBy   Staff            @relation("PaymentBy", fields: [createdById], references: [id])
+  createdAt   DateTime         @default(now())
+
+  @@index([staffId, month])
+  @@index([createdAt])
 }

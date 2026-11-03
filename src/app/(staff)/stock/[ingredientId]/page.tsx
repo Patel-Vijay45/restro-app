@@ -7,7 +7,7 @@ import { rupees } from "@/lib/money";
 import { dateTimeText } from "@/lib/time";
 import { UNIT_LABEL, formatQty, formatRecipeQty } from "@/lib/units";
 import BackHeader from "@/components/BackHeader";
-import Notice from "@/components/Notice";
+import SubmitButton from "@/components/SubmitButton";
 
 const MOVE_LABEL: Record<StockMoveType, string> = {
   PURCHASE: "Bought",
@@ -43,7 +43,6 @@ export default async function IngredientPage({
   return (
     <div>
       <BackHeader title={ingredient ? ingredient.name : "New ingredient"} href="/stock" />
-      <Notice error={sp.error} success={sp.saved ? "Saved." : undefined} />
 
       {ingredient && (
         <div className="mb-4 grid grid-cols-2 gap-3">
@@ -93,7 +92,7 @@ export default async function IngredientPage({
             </label>
           </div>
         )}
-        <button className="btn-primary w-full">Save</button>
+        <SubmitButton className="btn-primary w-full">Save</SubmitButton>
       </form>
 
       {ingredient && (
@@ -143,9 +142,9 @@ export default async function IngredientPage({
           <form action={setIngredientActive} className="text-center">
             <input type="hidden" name="id" value={ingredient.id} />
             <input type="hidden" name="active" value={String(!ingredient.active)} />
-            <button className="text-sm font-medium text-nonveg underline">
+            <SubmitButton className="text-sm font-medium text-nonveg underline">
               {ingredient.active ? "Stop tracking this ingredient" : "Track again"}
-            </button>
+            </SubmitButton>
           </form>
         </>
       )}

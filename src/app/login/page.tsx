@@ -9,7 +9,8 @@ export const metadata: Metadata = { title: "DFC Staff login", manifest: "/manife
 
 export default async function LoginPage() {
   const staff = await db.staff.findMany({
-    where: { active: true },
+    // helpers have no app login
+    where: { active: true, role: { not: "HELPER" } },
     select: { id: true, name: true, role: true, outlet: { select: { name: true } } },
     orderBy: [{ role: "asc" }, { name: "asc" }],
   });

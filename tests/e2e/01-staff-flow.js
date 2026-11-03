@@ -47,7 +47,7 @@ run(async (browser) => {
   await owner.fill('input[name=upiId]', 'dfcrestaurant@okaxis');
   await owner.fill('input[name=phone]', '98450 00000');
   await owner.getByRole('button', { name: 'Save' }).click();
-  await owner.waitForSelector('text=Saved.');
+  await owner.waitForSelector('text=Outlet settings saved');
   await owner.goto(orderUrl + '/bill');
   await owner.getByRole('button', { name: 'Change discount' }).click();
   await owner.getByRole('button', { name: '%' }).click();

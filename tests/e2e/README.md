@@ -5,7 +5,7 @@ Run them before every release and after every bug fix or new feature.
 
 ```bash
 npm run build          # after any code change
-npm run test:e2e       # all suites (about 4 minutes)
+npm run test:e2e       # all suites (about 5 minutes)
 npm run test:e2e -- 03 # only suites starting with "03"
 ```
 
@@ -23,6 +23,7 @@ npm run test:e2e -- 03 # only suites starting with "03"
 | `03-stock` | Stock goes down with orders, back when removed before cooking, not after → purchase and average cost → wastage → count → recipe editor → new ingredient → stall stock separate → food cost in report |
 | `04-website` | Website buttons, takeaway checkout → tracking page, "Your order" bar, stall tab, veg filter, sold out on website, dine-in hint, Kannada and Hindi (with a Hindi error message), `/staff` entry, desktop layout |
 | `05-online-order` | Website order → staff accept (token) → customer adds more → accept → kitchen → Ready for pickup → Collected → Bill → Paid; rejected order shows the reason; spam limit; stall online order; dish photos (dish page, all-dishes screen, tap to enlarge) |
+| `06-staff-salary` | Save messages in admin (green and red) → add a helper with salary → attendance on the calendar → advance, bonus cancelled → salary sheet balance and pay → daily attendance → a manager can't see pay → helpers not on the login screen |
 
 Adding a test: copy the closest suite, keep the `NN-name.js` file name, use the helpers in `helpers.js`
 (`login`, `ctx`, `row`, `check`, `expectEq`, `stock`, `shot`). Each suite starts from fresh sample data.

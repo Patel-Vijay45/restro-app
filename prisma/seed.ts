@@ -227,6 +227,35 @@ async function addInventory(outletId: string, list: SeedIngredient[], recipes: S
   return true;
 }
 
+// Sample pay: [name, salary type, ₹ amount, phone]. Joined at the start of last month, so last month's salary sheet is complete.
+const SAMPLE_PAY: [string, "MONTHLY" | "DAILY", number, string][] = [
+  ["Ravi (Waiter)", "MONTHLY", 12000, "9800000001"],
+  ["Kitchen", "MONTHLY", 18000, "9800000002"],
+  ["Counter", "MONTHLY", 14000, "9800000003"],
+  ["Stall", "MONTHLY", 12000, "9800000004"],
+  ["Shankar (Helper)", "DAILY", 500, "9800000005"],
+];
+
+function startOfLastMonth(): string {
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+  const [y, m] = today.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 2, 1));
+  return d.toISOString().slice(0, 10);
+}
+
+/** Salaries, phones and a helper for the sample staff, if no salary has been set yet (never changes real data). */
+async function addSamplePay(restaurantId: string): Promise<boolean> {
+  if ((await db.staff.count({ where: { salary: { gt: 0 } } })) > 0) return false;
+  if (!(await db.staff.findFirst({ where: { name: "Shankar (Helper)" } }))) {
+    await db.staff.create({ data: { name: "Shankar (Helper)", role: "HELPER", pinHash: "", outletId: restaurantId } });
+  }
+  const joinedOn = startOfLastMonth();
+  for (const [name, salaryType, rupees, phone] of SAMPLE_PAY) {
+    await db.staff.updateMany({ where: { name, salary: 0 }, data: { salaryType, salary: rupees * 100, phone, joinedOn } });
+  }
+  return true;
+}
+
 async function main() {
   if ((await db.outlet.count()) > 0) {
     // Older databases: add sample stock and recipes if they have none yet.
@@ -237,9 +266,12 @@ async function main() {
       if (ok) added++;
     }
     const translated = await addTranslations();
+    const restaurantOutlet = outlets.find((o) => o.type === "RESTAURANT");
+    const pay = restaurantOutlet ? await addSamplePay(restaurantOutlet.id) : false;
+    if (pay) console.log("Added sample salaries and a helper (Shankar) to the staff.");
     if (added) console.log(`Added sample stock and recipes to ${added} outlet(s).`);
     if (translated) console.log(`Added Kannada / Hindi names to ${translated} sample dishes and categories.`);
-    if (!added && !translated) console.log("Database already has data, skipping seed.");
+    if (!added && !translated && !pay) console.log("Database already has data, skipping seed.");
     return;
   }
 
@@ -285,10 +317,11 @@ async function main() {
     ],
   });
 
+  await addSamplePay(restaurant.id);
   await addInventory(restaurant.id, restaurantIngredients, restaurantRecipes);
   await addInventory(stall.id, stallIngredients, stallRecipes);
 
-  console.log("Seeded: 2 outlets, 12 tables, sample menus with recipes, sample stock, 5 staff logins.");
+  console.log("Seeded: 2 outlets, 12 tables, sample menus with recipes, sample stock, 5 staff logins, a helper, sample salaries.");
 }
 
 main()

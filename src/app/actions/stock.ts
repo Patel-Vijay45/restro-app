@@ -41,7 +41,7 @@ export async function saveIngredient(form: FormData) {
       back(path, { error: "The unit can't change once stock has been recorded. Add a new ingredient instead." });
     }
     await db.ingredient.update({ where: { id }, data: { name, unit, lowStock } });
-    back(path, { saved: "1" });
+    back(path, { ok: `${name} saved` });
   }
 
   const opening = parseBigQty(text(form, "opening") || "0");
@@ -54,7 +54,7 @@ export async function saveIngredient(form: FormData) {
       await applyMove(tx, { outletId: me.outletId, ingredientId: ingredient.id, type: "COUNT_ADJUST", qty: opening, note: "Opening stock", staffId: me.staffId });
     }
   });
-  back("/stock", { saved: name });
+  back("/stock", { ok: `Added ${name}` });
 }
 
 export async function setIngredientActive(form: FormData) {
@@ -62,7 +62,7 @@ export async function setIngredientActive(form: FormData) {
   const id = text(form, "id");
   const active = form.get("active") === "true";
   await db.ingredient.updateMany({ where: { id, outletId: me.outletId }, data: { active } });
-  back(active ? `/stock/${id}` : "/stock");
+  back(active ? `/stock/${id}` : "/stock", { ok: active ? "Tracking this ingredient again" : "Stopped tracking the ingredient" });
 }
 
 async function findIngredient(outletId: string, id: string, path: string) {
@@ -92,7 +92,7 @@ export async function recordPurchase(form: FormData) {
       staffId: me.staffId,
     }),
   );
-  back(path, { saved: `${formatQty(qty, ingredient.unit)} ${ingredient.name}`, supplier });
+  back(path, { ok: `Purchase saved: ${formatQty(qty, ingredient.unit)} ${ingredient.name}. Add the next item.`, supplier });
 }
 
 export async function recordWastage(form: FormData) {
@@ -106,7 +106,7 @@ export async function recordWastage(form: FormData) {
   await db.$transaction((tx) =>
     applyMove(tx, { outletId: me.outletId, ingredientId: ingredient.id, type: "WASTAGE", qty: -qty, note: reason, staffId: me.staffId }),
   );
-  back(path, { saved: `${formatQty(qty, ingredient.unit)} ${ingredient.name}` });
+  back(path, { ok: `Wastage recorded: ${formatQty(qty, ingredient.unit)} ${ingredient.name}` });
 }
 
 /** Physical stock count: for each counted ingredient, record the difference from the system. */
@@ -133,7 +133,7 @@ export async function saveCount(form: FormData) {
       await applyMove(tx, { outletId: me.outletId, ingredientId: c.id, type: "COUNT_ADJUST", qty: diff, note: "Stock count", staffId: me.staffId });
     }
   });
-  back("/stock", { counted: String(counted.length), changed: String(changed) });
+  back("/stock", { ok: `Count saved: ${counted.length} checked, ${changed} different from the system (see each ingredient's history)` });
 }
 
 /** Replace a dish's recipe. Form has repeated ingredientId[] and qty[] fields (qty in g / ml / pcs). */
@@ -163,5 +163,5 @@ export async function saveRecipe(form: FormData) {
     db.recipeLine.deleteMany({ where: { menuItemId } }),
     db.recipeLine.createMany({ data: [...lines].map(([ingredientId, qty]) => ({ menuItemId, ingredientId, qty })) }),
   ]);
-  back(path, { saved: "1" });
+  back(path, { ok: "Recipe saved. Stock goes down by these amounts for every portion ordered." });
 }

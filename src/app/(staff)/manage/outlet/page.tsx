@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { CAN_MANAGE, requireStaff } from "@/lib/auth";
 import { saveOutlet } from "@/app/actions/manage";
-import Notice from "@/components/Notice";
+import SubmitButton from "@/components/SubmitButton";
 
 export default async function OutletAdminPage({ searchParams }: { searchParams: Promise<{ error?: string; saved?: string }> }) {
   const me = await requireStaff(CAN_MANAGE);
@@ -10,7 +10,6 @@ export default async function OutletAdminPage({ searchParams }: { searchParams: 
 
   return (
     <div>
-      <Notice error={error} success={saved ? "Saved." : undefined} />
       <form action={saveOutlet} className="card space-y-4 p-4">
         <Field label="Name (printed on bills)" name="name" value={o.name} />
         <Field label="Address" name="address" value={o.address} />
@@ -42,7 +41,7 @@ export default async function OutletAdminPage({ searchParams }: { searchParams: 
           <Field label="Opening hours" name="hours" value={o.hours} placeholder="e.g. Every day, 11 AM – 11 PM" />
           <Field label="Google Maps link (Share → Copy link)" name="mapsUrl" value={o.mapsUrl} placeholder="https://maps.app.goo.gl/…" />
         </fieldset>
-        <button className="btn-primary w-full">Save</button>
+        <SubmitButton className="btn-primary w-full">Save</SubmitButton>
       </form>
     </div>
   );

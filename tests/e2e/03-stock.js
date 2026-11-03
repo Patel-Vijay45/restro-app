@@ -47,7 +47,7 @@ run(async (browser) => {
   await owner.fill('input[name=supplier]', 'Nandini Dairy');
   await shot(owner, '02-purchase');
   await owner.getByRole('button', { name: 'Save purchase' }).click();
-  await owner.waitForSelector('text=Saved: 2 L Ghee');
+  await owner.waitForSelector('text=Purchase saved: 2 L Ghee');
   // ghee: 0.4 L opening - 2 biryani x 10 ml = 0.38 L; avg cost (0.38*600 + 1300) / 2.38
   expectEq('ghee stock', await stock('Ghee'), 2380);
   expectEq('ghee avg cost', (await db.ingredient.findFirstOrThrow({ where: { name: 'Ghee', outlet: { type: 'RESTAURANT' } } })).costPerUnit, Math.round((380 * 60000 / 1000 + 130000) / 2.38));
@@ -58,7 +58,7 @@ run(async (browser) => {
   await owner.fill('input[name=qty]', '0.5');
   await owner.fill('input[name=reason]', 'Spoiled');
   await owner.getByRole('button', { name: 'Save wastage' }).click();
-  await owner.waitForSelector('text=Recorded: 500 g Tomato wasted');
+  await owner.waitForSelector('text=Wastage recorded: 500 g Tomato');
   expectEq('tomato after wastage', await stock('Tomato'), 7500);
 
   // count onion: system 15 - 2x60g = 14.88, counted 14

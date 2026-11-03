@@ -32,7 +32,7 @@ src/
     photo/[id]/            dish photos (long browser cache)
     print/                 thermal receipt, table QR sheet
     actions/               ALL data changes (server actions): orders, customer (table + website, no login),
-                           requests (staff accept/reject), photos, stock, manage, auth
+                           requests (staff accept/reject), photos, stock, manage, staff (people, attendance, pay), auth
     robots.ts, sitemap.ts  search engines
   components/              shared UI (MenuPicker, VegMark, BottomNav, …); site/ = website-only
   lib/
@@ -44,6 +44,8 @@ src/
     orderOps.ts            price a cart, open/append a table order, create a KOT (shared by waiter, QR, website and stall)
     customerStatus.ts      what a customer sees: rounds, progress stage, bill (table page and tracking page)
     requests.ts            pending customer requests for the staff panel
+    payroll.ts             salary maths: payable days, earned, balance (tested)
+    staffPay.ts            loads a person's month (attendance, pay entries) and the outlet's salary sheet
     stock.ts               stock moves: deduct for orders, return, purchase average cost
     counters.ts            bill / KOT / token numbers
     time.ts                India time helpers
@@ -74,7 +76,9 @@ deploy/                    server (Docker) and free test (Vercel + Neon) guides
     all three dictionaries in `src/lib/i18n.ts`. Dish/category names use `localName()`. Staff screens stay English.
     Store data (pickup times, item names) in English.
 14. **Phone first:** test every screen at 390 px wide; buttons at least 44 px tall; plain words on screen.
-15. **Write for people:** error messages say what to do ("Enter a 10-digit mobile number"), not codes.
+15. **Every save gives feedback:** form buttons are `<SubmitButton>` ("Saving…"), and form actions redirect with
+    `?ok=<message>` or `?error=<message>`, which `<Toast>` (staff layout) shows at the top of the screen.
+16. **Write for people:** error messages say what to do ("Enter a 10-digit mobile number"), not codes.
 
 ## Common tasks
 

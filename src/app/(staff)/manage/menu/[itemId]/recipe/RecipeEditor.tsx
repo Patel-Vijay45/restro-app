@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { saveRecipe } from "@/app/actions/stock";
 import { rupees } from "@/lib/money";
+import SubmitButton from "@/components/SubmitButton";
 
 type Ingredient = { id: string; name: string; small: string; isPiece: boolean; costPerUnit: number };
 type Line = { ingredientId: string; qty: string };
@@ -97,7 +98,7 @@ export default function RecipeEditor({
         </div>
       </div>
       <p className="mb-4 text-xs text-muted">Restaurants usually aim for a food cost of 25–35% of the selling price.</p>
-      <button className="btn-primary w-full">Save recipe</button>
+      <SubmitButton className="btn-primary w-full">Save recipe</SubmitButton>
     </form>
   );
 }
